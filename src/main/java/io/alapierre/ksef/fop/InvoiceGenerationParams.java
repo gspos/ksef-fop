@@ -41,4 +41,10 @@ public class InvoiceGenerationParams {
 
     @Builder.Default
     private Language language = Language.PL;
+
+    /**
+     * Custom classpath XSL template path. If provided, overrides the default template resolved from schema.
+     */
+    @Nullable
+    private String customTemplatePath;
 }

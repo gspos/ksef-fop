@@ -44,11 +44,11 @@ class GeneratePdfTest {
 
             InputStream xml = new FileInputStream("src/test/resources/20231111-SE-E8DDA726E2-F87F056923-EC.xml");
             Source src = new StreamSource(xml);
-            
+
             UpoGenerationParams params = UpoGenerationParams.builder()
                     .schema(UpoSchema.UPO_V3)
                     .build();
-            
+
             generator.generateUpo(src, params, out);
         }
     }
@@ -62,11 +62,11 @@ class GeneratePdfTest {
 
             InputStream xml = new FileInputStream("src/test/resources/20231111-SE-E8DDA726E2-F87F056923-EC.xml");
             Source src = new StreamSource(xml);
-            
+
             UpoGenerationParams params = UpoGenerationParams.builder()
                     .schema(UpoSchema.UPO_V3)
                     .build();
-            
+
             generator.generateUpo(src, params, out);
         }
     }
@@ -80,11 +80,11 @@ class GeneratePdfTest {
 
             InputStream xml = new FileInputStream("src/test/resources/20231111-SE-E8DDA726E2-F87F056923-EC-v4-2.xml");
             Source src = new StreamSource(xml);
-            
+
             UpoGenerationParams params = UpoGenerationParams.builder()
                     .schema(UpoSchema.UPO_V4_2)
                     .build();
-            
+
             generator.generateUpo(src, params, out);
         }
     }
@@ -98,11 +98,29 @@ class GeneratePdfTest {
 
             InputStream xml = new FileInputStream("src/test/resources/20231111-SE-E8DDA726E2-F87F056923-EC-v4-2.xml");
             Source src = new StreamSource(xml);
-            
+
             UpoGenerationParams params = UpoGenerationParams.builder()
                     .schema(UpoSchema.UPO_V4_2)
                     .build();
-            
+
+            generator.generateUpo(src, params, out);
+        }
+    }
+
+    @Test
+    void genV4_3UpoByService() throws Exception {
+
+        PdfGenerator generator = new PdfGenerator(new FileInputStream("src/test/resources/fop.xconf"));
+
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream("src/test/resources/upo-v4-3-service.pdf"))) {
+
+            InputStream xml = new FileInputStream("src/test/resources/20231111-SE-E8DDA726E2-F87F056923-EC-v4-3.xml");
+            Source src = new StreamSource(xml);
+
+            UpoGenerationParams params = UpoGenerationParams.builder()
+                    .schema(UpoSchema.UPO_V4_3)
+                    .build();
+
             generator.generateUpo(src, params, out);
         }
     }
@@ -136,7 +154,7 @@ class GeneratePdfTest {
 
         try (OutputStream out = new BufferedOutputStream(new FileOutputStream("src/test/resources/invoice.pdf"))) {
 
-            byte[] invoiceXml = Files.readAllBytes(Path.of("src/test/resources/faktury/fa2/korygujaca/FA_2_Przyklad_2.xml"));
+            byte[] invoiceXml = Files.readAllBytes(Paths.get("src/test/resources/faktury/fa2/korygujaca/FA_2_Przyklad_2.xml"));
 
             InvoiceGenerationParams invoiceGenerationParams = InvoiceGenerationParams.builder()
                     .schema(InvoiceSchema.FA2_1_0_E)
@@ -151,7 +169,47 @@ class GeneratePdfTest {
 
         try (OutputStream out = new BufferedOutputStream(new FileOutputStream("src/test/resources/invoice_fa3.pdf"))) {
 
-            byte[] invoiceXml = Files.readAllBytes(Path.of("src/test/resources/faktury/fa3/podstawowa/FA_3_Przyklad_1.xml"));
+            byte[] invoiceXml = Files.readAllBytes(Paths.get("src/test/resources/faktury/fa3/podstawowa/FA_3_Przyklad_5.xml"));
+
+            String verificationLink = "https://qr-test.ksef.mf.gov.pl/invoice/5451824119/31-01-2026/KxwNsNKtYSXLfcVsRnXAANUXT6NepXk42xOXUXaF8xE";
+            InvoiceQRCodeGeneratorRequest invoiceQRCodeGeneratorRequest = InvoiceQRCodeGeneratorRequest.onlineQrBuilder(verificationLink);
+            InvoiceGenerationParams invoiceGenerationParams = InvoiceGenerationParams.builder()
+                    .schema(InvoiceSchema.FA3_1_0_E)
+                    .ksefNumber("5451824119-20260131-0200206A4F2C-92")
+                    .invoiceQRCodeGeneratorRequest(invoiceQRCodeGeneratorRequest)
+                    .build();
+            generator.generateInvoice(invoiceXml, invoiceGenerationParams, out);
+        }
+    }
+
+    @Test
+    void generateFa3InvoicePdfWithAttachment() throws Exception {
+        PdfGenerator generator = new PdfGenerator(new FileInputStream("src/test/resources/fop.xconf"));
+
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream("src/test/resources/invoice_fa3_zalacznik.pdf"))) {
+
+            byte[] invoiceXml = Files.readAllBytes(Paths.get("src/test/resources/faktury/fa3/zalacznik/FA_3_Zalacznik_Przyklad_2.xml"));
+
+            String verificationLink = "https://qr-test.ksef.mf.gov.pl/invoice/5451824119/31-01-2026/KxwNsNKtYSXLfcVsRnXAANUXT6NepXk42xOXUXaF8xE";
+            InvoiceQRCodeGeneratorRequest invoiceQRCodeGeneratorRequest = InvoiceQRCodeGeneratorRequest.onlineQrBuilder(verificationLink);
+            InvoiceGenerationParams invoiceGenerationParams = InvoiceGenerationParams.builder()
+                    .schema(InvoiceSchema.FA3_1_0_E)
+                    .ksefNumber("5451824119-20260131-0200206A4F2C-92")
+                    .invoiceQRCodeGeneratorRequest(invoiceQRCodeGeneratorRequest)
+                    .build();
+            generator.generateInvoice(invoiceXml, invoiceGenerationParams, out);
+        }
+    }
+
+
+    @Test
+    void generateFa3InvoicePdfNonUE() throws Exception {
+        PdfGenerator generator = new PdfGenerator(new FileInputStream("src/test/resources/fop.xconf"));
+
+        try (OutputStream out =
+                     new BufferedOutputStream(new FileOutputStream("src/test/resources/invoice_non_ue.pdf"))) {
+
+            byte[] invoiceXml = Files.readAllBytes(Paths.get("src/test/resources/faktury/fa3/poza_ue/FA_3_Przyklad_1.xml"));
 
             InvoiceGenerationParams invoiceGenerationParams = InvoiceGenerationParams.builder()
                     .schema(InvoiceSchema.FA3_1_0_E)
@@ -166,7 +224,7 @@ class GeneratePdfTest {
 
         try (OutputStream out = new BufferedOutputStream(new FileOutputStream("src/test/resources/invoice_fa3_ext_gtin.pdf"))) {
 
-            byte[] invoiceXml = Files.readAllBytes(Path.of("src/test/resources/faktury/fa3/gspos/26_1_Fa.xml"));
+            byte[] invoiceXml = Files.readAllBytes(Paths.get("src/test/resources/faktury/fa3/gspos/26_1_Fa.xml"));
 
             InvoiceGenerationParams invoiceGenerationParams = InvoiceGenerationParams.builder()
                     .schema(InvoiceSchema.FA3_1_0_E)
@@ -187,7 +245,7 @@ class GeneratePdfTest {
 
         try (OutputStream out = new BufferedOutputStream(new FileOutputStream("src/test/resources/invoice.pdf"))) {
 
-            byte[] invoiceXml = Files.readAllBytes(Path.of("src/test/resources/faktury/fa2/podstawowa/FA_2_Przyklad_20.xml"));
+            byte[] invoiceXml = Files.readAllBytes(Paths.get("src/test/resources/faktury/fa2/podstawowa/FA_2_Przyklad_20.xml"));
 
             InvoiceGenerationParams invoiceGenerationParams = InvoiceGenerationParams.builder()
                     .ksefNumber(ksefNumber)
@@ -210,27 +268,23 @@ class GeneratePdfTest {
         byte[] logo = Files.readAllBytes(logoFile.toPath());
         PdfGenerator generator = new PdfGenerator(new FileInputStream("src/test/resources/fop.xconf"));
 
-        Path fa2InvoiceFolder = Paths.get("src/test/resources/faktury/fa2/podstawowa");
-        testForFolder(fa2InvoiceFolder, ksefNumber, verificationLink, false, qrCode, logo, InvoiceSchema.FA2_1_0_E, generator);
+        Path correctionFolder = Paths.get("src/test/resources/faktury/fa3/korygujaca");
+        testForFolder(correctionFolder, ksefNumber, verificationLink, false, qrCode, logo, InvoiceSchema.FA3_1_0_E, generator);
 
         Path fa3InvoiceFolder = Paths.get("src/test/resources/faktury/fa3/podstawowa");
         testForFolder(fa3InvoiceFolder, ksefNumber, verificationLink, false, qrCode, logo, InvoiceSchema.FA3_1_0_E, generator);
 
+        Path pozaUeFolder = Paths.get("src/test/resources/faktury/fa3/poza_ue");
+        testForFolder(pozaUeFolder, ksefNumber, verificationLink, false, qrCode, logo, InvoiceSchema.FA3_1_0_E, generator);
 
-        Path zaliczkowaInvoiceFolder = Paths.get("src/test/resources/faktury/fa2/zaliczkowa");
-        testForFolder(zaliczkowaInvoiceFolder, ksefNumber, verificationLink, false, qrCode, logo, InvoiceSchema.FA2_1_0_E, generator);
+        Path zaliczkowaInvoiceFolder = Paths.get("src/test/resources/faktury/fa3/zaliczkowa");
+        testForFolder(zaliczkowaInvoiceFolder, ksefNumber, verificationLink, false, qrCode, logo, InvoiceSchema.FA3_1_0_E, generator);
 
-        Path rozliczeniowaInvoiceFolder = Paths.get("src/test/resources/faktury/fa2/rozliczeniowa");
-        testForFolder(rozliczeniowaInvoiceFolder, ksefNumber, verificationLink, false, qrCode, logo, InvoiceSchema.FA2_1_0_E, generator);
+        Path rozliczeniowaInvoiceFolder = Paths.get("src/test/resources/faktury/fa3/rozliczeniowa");
+        testForFolder(rozliczeniowaInvoiceFolder, ksefNumber, verificationLink, false, qrCode, logo, InvoiceSchema.FA3_1_0_E, generator);
 
-        Path correctionFolder = Paths.get("src/test/resources/faktury/fa2/korygujaca");
-        testForFolder(correctionFolder, ksefNumber, verificationLink, false, qrCode, logo, InvoiceSchema.FA2_1_0_E, generator);
-
-        Path correctionFolderWithCorrectionDifferences = Paths.get("src/test/resources/faktury/fa2/korygujaca");
-        testForFolder(correctionFolderWithCorrectionDifferences, ksefNumber, verificationLink, true, qrCode, logo, InvoiceSchema.FA2_1_0_E, generator);
-
-
-
+        Path zalacznikInvoiceFolder = Paths.get("src/test/resources/faktury/fa3/zalacznik");
+        testForFolder(zalacznikInvoiceFolder, ksefNumber, verificationLink, false, qrCode, logo, InvoiceSchema.FA3_1_0_E, generator);
     }
 
     private void testForFolder(Path invoiceFolder,

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:fo="http://www.w3.org/1999/XSL/Format"
-    xmlns:n1="http://upo.schematy.mf.gov.pl/KSeF/v4-2">
+    xmlns:n1="http://upo.schematy.mf.gov.pl/KSeF/v4-3">
     <xsl:output method="xml"  encoding="UTF-8" indent="yes"/>
 
     <xsl:param name="labels"/>
@@ -70,7 +70,43 @@
                                 <fo:table-row>
                                     <fo:table-cell>
                                         <fo:block>
-                                        <fo:inline font-weight="700">Identyfikator podatkowy podmiotu:</fo:inline>
+                                        <fo:inline font-weight="700">Numer referencyjny sesji:</fo:inline>
+                                        </fo:block>
+                                    </fo:table-cell>
+
+                                    <fo:table-cell>
+                                        <fo:block>
+                                        <fo:inline><xsl:value-of select="//n1:Potwierdzenie/n1:NumerReferencyjnySesji"/></fo:inline>
+                                        </fo:block>
+                                    </fo:table-cell>
+                                </fo:table-row>
+
+                                <fo:table-row>
+                                    <fo:table-cell>
+                                        <fo:block>
+                                        <fo:inline font-weight="700">Typ kontekstu:</fo:inline>
+                                        </fo:block>
+                                    </fo:table-cell>
+
+                                    <fo:table-cell>
+                                        <fo:block>
+                                        <fo:inline>
+                                            <xsl:choose>
+                                                <xsl:when test="//n1:Potwierdzenie/n1:Uwierzytelnienie/n1:IdKontekstu/n1:Nip">NIP</xsl:when>
+                                                <xsl:when test="//n1:Potwierdzenie/n1:Uwierzytelnienie/n1:IdKontekstu/n1:IdWewnetrzny">Identyfikator wewnętrzny</xsl:when>
+                                                <xsl:when test="//n1:Potwierdzenie/n1:Uwierzytelnienie/n1:IdKontekstu/n1:IdZlozonyVatUE">Identyfikator złożony VAT UE</xsl:when>
+                                                <xsl:when test="//n1:Potwierdzenie/n1:Uwierzytelnienie/n1:IdKontekstu/n1:IdDostawcyUslugPeppol">Identyfikator dostawcy usług Peppol</xsl:when>
+                                                <xsl:otherwise>Nieznany</xsl:otherwise>
+                                            </xsl:choose>
+                                        </fo:inline>
+                                        </fo:block>
+                                    </fo:table-cell>
+                                </fo:table-row>
+
+                                <fo:table-row>
+                                    <fo:table-cell>
+                                        <fo:block>
+                                        <fo:inline font-weight="700">Identyfikator kontekstu uwierzytelnienia:</fo:inline>
                                         </fo:block>
                                     </fo:table-cell>
 
@@ -100,27 +136,13 @@
                                 <fo:table-row>
                                     <fo:table-cell>
                                         <fo:block>
-                                        <fo:inline font-weight="700">Numer referencyjny sesji:</fo:inline>
-                                        </fo:block>
-                                    </fo:table-cell>
-
-                                    <fo:table-cell>
-                                        <fo:block>
-                                        <fo:inline><xsl:value-of select="//n1:Potwierdzenie/n1:NumerReferencyjnySesji"/></fo:inline>
-                                        </fo:block>
-                                    </fo:table-cell>
-                                </fo:table-row>
-
-                                <fo:table-row>
-                                    <fo:table-cell>
-                                        <fo:block>
                                         <fo:inline font-weight="700">
                                             <xsl:choose>
                                                 <xsl:when test="//n1:Potwierdzenie/n1:Uwierzytelnienie/n1:NumerReferencyjnyTokenaKSeF">
                                                     Identyfikator tokenu uwierzytelniającego w systemie KSeF:
                                                 </xsl:when>
                                                 <xsl:when test="//n1:Potwierdzenie/n1:Uwierzytelnienie/n1:SkrotDokumentuUwierzytelniajacego">
-                                                    Wartość funkcji skrótu dokumentu uwierzytelniającego w postaci otrzymanej przez system (łącznie z podpisem elektronicznym):
+                                                    Skrót dokumentu uwierzytelniającego:
                                                 </xsl:when>
                                                 <xsl:otherwise>Metoda uwierzytelnienia:</xsl:otherwise>
                                             </xsl:choose>
@@ -179,20 +201,22 @@
                     </fo:block>
 
                     <fo:block font-size="6pt" line-height="inherit" space-before="14pt">
-                        <fo:table table-layout="auto" width="100%">
-                            <fo:table-column column-width="10%"/> <!-- Nip sprzedawcy z faktury (Podmiot 1) -->
+                        <fo:table table-layout="fixed" width="100%">
+                            <fo:table-column column-width="3%"/> <!-- Lp. -->
                             <fo:table-column column-width="18%"/> <!-- Numer identyfikujący fakturę w KSeF -->
-                            <fo:table-column column-width="14%"/> <!-- Nummer faktury -->
-                            <fo:table-column column-width="6%"/> <!-- Data wystawienia faktury -->
-                            <fo:table-column column-width="13%"/> <!-- Data przeslania dokumentu do systemu KSeF -->
-                            <fo:table-column column-width="13%"/> <!-- Czas i data wygenerowania numeru KSeF -->
-                            <fo:table-column column-width="26%"/> <!-- Wartość funkcji skrótu złożonego dokumentu -->
+                            <fo:table-column column-width="10%"/> <!-- Numer faktury -->
+                            <fo:table-column column-width="10%"/> <!-- NIP Sprzedawcy -->
+                            <fo:table-column column-width="7%"/> <!-- Data wystawienia faktury -->
+                            <fo:table-column column-width="12%"/> <!-- Data przesłania do KSeF -->
+                            <fo:table-column column-width="12%"/> <!-- Data nadania numeru KSeF -->
+                            <fo:table-column column-width="20%"/> <!-- Wartość funkcji skrótu złożonego dokumentu -->
+                            <fo:table-column column-width="8%"/> <!-- Tryb wysyłki -->
                             <fo:table-header background-color="#f6f7fa">
 
                                 <fo:table-row border-width="1px" border-style="solid" border-color="#bababa" border-bottom="2px solid #000000">
                                     <fo:table-cell padding="5pt" border-right="1px solid #bababa" border-bottom="2px solid #000000">
                                         <fo:block>
-                                            Nip sprzedawcy z faktury (Podmiot 1)
+                                            Lp.
                                         </fo:block>
                                     </fo:table-cell>
 
@@ -210,24 +234,34 @@
 
                                     <fo:table-cell padding="5pt" border-right="1px solid #bababa" border-bottom="2px solid #000000">
                                         <fo:block>
+                                            NIP Sprzedawcy
+                                        </fo:block>
+                                    </fo:table-cell>
+
+                                    <fo:table-cell padding="5pt" border-right="1px solid #bababa" border-bottom="2px solid #000000">
+                                        <fo:block>
                                             Data wystawienia faktury
                                         </fo:block>
                                     </fo:table-cell>
 
                                     <fo:table-cell padding="5pt" border-right="1px solid #bababa" border-bottom="2px solid #000000">
                                         <fo:block>
-                                            Data przesłania dokumentu do systemu KSeF
+                                            Data przesłania do KSeF
                                         </fo:block>
                                     </fo:table-cell>
                                     <fo:table-cell padding="5pt" border-right="1px solid #bababa" border-bottom="2px solid #000000">
                                         <fo:block>
-                                            Czas i data wygenerowania numeru KSeF
+                                            Data nadania numeru KSeF
+                                        </fo:block>
+                                    </fo:table-cell>
+                                    <fo:table-cell padding="5pt" border-right="1px solid #bababa" border-bottom="2px solid #000000">
+                                        <fo:block wrap-option="wrap">
+                                            Wartość funkcji skrótu złożonego dokumentu
                                         </fo:block>
                                     </fo:table-cell>
                                     <fo:table-cell padding="5pt" border-bottom="2px solid #000000">
-                                        <fo:block wrap-option="wrap">
-                                            Wartość funkcji skrótu złożonego
-                                            dokumentu
+                                        <fo:block>
+                                            Tryb wysyłki
                                         </fo:block>
                                     </fo:table-cell>
                                 </fo:table-row>
@@ -239,7 +273,7 @@
                                     <fo:table-row border-width="1px" border-style="solid" border-color="#bababa">
                                         <fo:table-cell padding="5pt" border-right="1px solid #bababa">
                                         <fo:block>
-                                            <xsl:value-of select="./n1:NipSprzedawcy"/>
+                                            <xsl:value-of select="position()"/>
                                         </fo:block>
                                     </fo:table-cell>
 
@@ -252,6 +286,12 @@
                                         <fo:table-cell padding="5pt" border-right="1px solid #bababa">
                                         <fo:block>
                                             <xsl:value-of select="./n1:NumerFaktury"/>
+                                        </fo:block>
+                                    </fo:table-cell>
+
+                                        <fo:table-cell padding="5pt" border-right="1px solid #bababa">
+                                        <fo:block>
+                                            <xsl:value-of select="./n1:NipSprzedawcy"/>
                                         </fo:block>
                                     </fo:table-cell>
 
@@ -276,6 +316,11 @@
                                             <xsl:value-of select="./n1:SkrotDokumentu"/>
                                         </fo:block>
                                     </fo:table-cell>
+                                    <fo:table-cell padding="5pt">
+                                        <fo:block>
+                                            <xsl:value-of select="./n1:TrybWysylki"/>
+                                        </fo:block>
+                                    </fo:table-cell>
                                 </fo:table-row>
 
                                 </xsl:for-each>
@@ -288,3 +333,4 @@
         </fo:root>
     </xsl:template>
 </xsl:stylesheet>
+

@@ -6,7 +6,13 @@ import io.alapierre.ksef.fop.qr.QrCodeData;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import net.sf.saxon.TransformerFactoryImpl;
-import org.apache.fop.apps.*;
+import org.apache.fop.apps.FOPException;
+import org.apache.fop.apps.FOUserAgent;
+import org.apache.fop.apps.Fop;
+import org.apache.fop.apps.FopFactory;
+import org.apache.fop.apps.FopFactoryBuilder;
+import org.apache.fop.apps.io.InternalResourceResolver;
+import org.apache.fop.apps.io.ResourceResolverFactory;
 import org.apache.fop.configuration.Configuration;
 import org.apache.fop.configuration.ConfigurationException;
 import org.apache.fop.configuration.DefaultConfigurationBuilder;
@@ -14,10 +20,19 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Document;
 
-import javax.xml.transform.*;
+import javax.xml.transform.Result;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.stream.StreamSource;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
 import java.net.URL;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -47,11 +62,20 @@ public class PdfGenerator {
         this(loadResource(fopConfig));
     }
 
+    public PdfGenerator(InputStream fopConfig, InvoicePdfConfig invoicePdfConfig) throws ConfigurationException {
+        this(fopConfig);
+        this.invoicePdfConfig = invoicePdfConfig;
+    }
+
     public PdfGenerator(InputStream fopConfig) throws ConfigurationException {
-        val builder = new FopFactoryBuilder(new File(".").toURI());
+        URI baseUri = new File(".").toURI();
+        ClasspathResourceResolver resourceResolver = new ClasspathResourceResolver();
+        InternalResourceResolver internalResourceResolver = ResourceResolverFactory.createInternalResourceResolver(baseUri, resourceResolver);
+        FopFactoryBuilder builder = new FopFactoryBuilder(baseUri, resourceResolver);
         DefaultConfigurationBuilder cfgBuilder = new DefaultConfigurationBuilder();
         Configuration cfg = cfgBuilder.build(fopConfig);
         builder.setConfiguration(cfg);
+        builder.getFontManager().setResourceResolver(internalResourceResolver);
         this.fopFactory = builder.build();
     }
 
@@ -118,7 +142,7 @@ public class PdfGenerator {
                                 InvoiceGenerationParams params,
                                 OutputStream out) throws IOException, TransformerException, FOPException {
         String langCode = params.getLanguage().getCode();
-        List<QrCodeData> qrCodes = buildQrCodes(params.getInvoiceQRCodeGeneratorRequest(), params.getKsefNumber(), invoiceXml, langCode);
+        List<QrCodeData> qrCodes = qrCodeBuilder.buildQrCodes(params.getInvoiceQRCodeGeneratorRequest(), params.getKsefNumber(), invoiceXml, langCode);
         generatePdfInvoice(invoiceXml, params, qrCodes, null, out);
     }
 
@@ -183,12 +207,18 @@ public class PdfGenerator {
     private static @NotNull String getUpoTemplatePathForSchema(UpoGenerationParams params) {
         String templateFileName;
         switch (params.getSchema()) {
-            case UPO_V3 -> templateFileName = "templates/upo_v3/ksef_upo.fop";
-            case UPO_V4_2 -> templateFileName = "templates/upo_v4/ksef_upo.fop";
-            default -> {
+            case UPO_V3:
+                templateFileName = "templates/upo_v3/ksef_upo.fop";
+                break;
+            case UPO_V4_2:
+                templateFileName = "templates/upo_v4/ksef_upo_v4_2.fop";
+                break;
+            case UPO_V4_3:
+                templateFileName = "templates/upo_v4/ksef_upo_v4_3.fop";
+                break;
+            default:
                 log.warn("UPO Schema is not provided in UpoGenerationParams or not supported, using default v3");
                 templateFileName = "templates/upo_v3/ksef_upo.fop";
-            }
         }
         return templateFileName;
     }
@@ -209,6 +239,10 @@ public class PdfGenerator {
 
         if (params.getLogo() != null) {
             setParam(transformer, "logo", Base64.getEncoder().encodeToString(params.getLogo()));
+        }
+
+        if (params.getLogoUri() != null) {
+            setParam(transformer, "logoUri", params.getLogoUri().toString());
         }
 
         if (duplicateDate != null) {
@@ -247,12 +281,6 @@ public class PdfGenerator {
         if (value != null) transformer.setParameter(name, value);
     }
 
-    private @Nullable List<QrCodeData> buildQrCodes(@Nullable InvoiceQRCodeGeneratorRequest req,
-                                                    @Nullable String ksefNumber,
-                                                    byte[] invoiceXmlBytes,
-                                                    String langCode) {
-        return qrCodeBuilder.buildQrCodes(req, ksefNumber, invoiceXmlBytes, langCode);
-    }
 
 
     private static InputStream loadResource(String resource) throws IOException {
@@ -271,10 +299,15 @@ public class PdfGenerator {
         if (params.getCustomTemplatePath() != null) {
             return params.getCustomTemplatePath();
         }
-        return switch (params.getSchema()) {
-            case FA2_1_0_E -> "templates/fa2/ksef_invoice.xsl";
-            case FA3_1_0_E -> "templates/fa3/ksef_invoice.xsl";
-        };
+        switch (params.getSchema()) {
+            case FA2_1_0_E:
+                return "templates/fa2/ksef_invoice.xsl";
+            case FA3_1_0_E:
+                return "templates/fa3/ksef_invoice.xsl";
+            default:
+                log.warn("UPO Schema {} in InvoiceGenerationParams is not supported, using default {}", params.getSchema(), InvoiceSchema.FA3_1_0_E);
+                return "templates/fa3/ksef_invoice.xsl";
+        }
     }
 
 }

@@ -268,7 +268,7 @@
                     <fo:block>
                         <xsl:variable name="taxRate" select="crd:P_12"/>
                         <xsl:choose>
-                            <xsl:when test="number($taxRate) = $taxRate and $taxRate != ''">
+                            <xsl:when test="$taxRate castable as xs:decimal">
                                 <xsl:value-of select="$taxRate"/>%
                             </xsl:when>
                             <xsl:otherwise>
@@ -680,7 +680,7 @@
                                 <fo:block>
                                     <xsl:variable name="taxRate" select="$after/crd:P_12"/>
                                     <xsl:choose>
-                                        <xsl:when test="number($taxRate) = $taxRate and $taxRate != ''">
+                                        <xsl:when test="$taxRate castable as xs:decimal">
                                             <xsl:value-of select="$taxRate"/>%
                                         </xsl:when>
                                         <xsl:otherwise>

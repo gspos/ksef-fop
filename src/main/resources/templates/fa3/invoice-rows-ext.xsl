@@ -2,7 +2,9 @@
 <xsl:stylesheet version="2.0"
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:fo="http://www.w3.org/1999/XSL/Format"
-                xmlns:crd="http://crd.gov.pl/wzor/2025/06/25/13775/">
+                xmlns:crd="http://crd.gov.pl/wzor/2025/06/25/13775/"
+				xmlns:xs="http://www.w3.org/2001/XMLSchema"
+				>
 
     <!-- Parameter for controlling decimal places in unit prices -->
     <xsl:param name="useExtendedDecimalPlaces" select="false()"/>
@@ -31,40 +33,30 @@
         <xsl:param name="faWiersz"/>
 
         <!-- Calculate column width for name based on presence of other columns -->
+        <!-- Fixed columns: Lp (4%), Quantity (8%), Unit (5%) = 17% -->
+        <!-- Optional columns: Indeks (8%), P_6A (9%), P_9A (10%), P_9B (10%), P_10 (7%), P_12 (8%), P_11 (10%), P_11Vat (7%), P_11A (10%) -->
         <xsl:variable name="nameColumnWidth">
-            <xsl:choose>
-                <!-- Base width is 31% -->
-                <!-- Check all combinations of P_11Vat, P_11A, P_9B and P_10 -->
-                <xsl:when test="$faWiersz/crd:P_11Vat and $faWiersz/crd:P_11A and $faWiersz/crd:P_9B and $faWiersz/crd:P_10">22%</xsl:when>
-                <xsl:when test="$faWiersz/crd:P_11Vat and $faWiersz/crd:P_11A and $faWiersz/crd:P_9B and not($faWiersz/crd:P_10)">29%</xsl:when>
-                
-                <xsl:when test="$faWiersz/crd:P_11Vat and $faWiersz/crd:P_11A and not($faWiersz/crd:P_9B) and $faWiersz/crd:P_10">31%</xsl:when>
-                <xsl:when test="$faWiersz/crd:P_11Vat and $faWiersz/crd:P_11A and not($faWiersz/crd:P_9B) and not($faWiersz/crd:P_10)">38%</xsl:when>
-                
-                <xsl:when test="$faWiersz/crd:P_11Vat and not($faWiersz/crd:P_11A) and $faWiersz/crd:P_9B and $faWiersz/crd:P_10">32%</xsl:when>
-                <xsl:when test="$faWiersz/crd:P_11Vat and not($faWiersz/crd:P_11A) and $faWiersz/crd:P_9B and not($faWiersz/crd:P_10)">39%</xsl:when>
-                
-                <xsl:when test="$faWiersz/crd:P_11Vat and not($faWiersz/crd:P_11A) and not($faWiersz/crd:P_9B) and $faWiersz/crd:P_10">41%</xsl:when>
-                <xsl:when test="$faWiersz/crd:P_11Vat and not($faWiersz/crd:P_11A) and not($faWiersz/crd:P_9B) and not($faWiersz/crd:P_10)">48%</xsl:when>
-                
-                <xsl:when test="not($faWiersz/crd:P_11Vat) and $faWiersz/crd:P_11A and $faWiersz/crd:P_9B and $faWiersz/crd:P_10">29%</xsl:when>
-                <xsl:when test="not($faWiersz/crd:P_11Vat) and $faWiersz/crd:P_11A and $faWiersz/crd:P_9B and not($faWiersz/crd:P_10)">36%</xsl:when>
-                
-                <xsl:when test="not($faWiersz/crd:P_11Vat) and $faWiersz/crd:P_11A and not($faWiersz/crd:P_9B) and $faWiersz/crd:P_10">38%</xsl:when>
-                <xsl:when test="not($faWiersz/crd:P_11Vat) and $faWiersz/crd:P_11A and not($faWiersz/crd:P_9B) and not($faWiersz/crd:P_10)">45%</xsl:when>
-                
-                <xsl:when test="not($faWiersz/crd:P_11Vat) and not($faWiersz/crd:P_11A) and $faWiersz/crd:P_9B and $faWiersz/crd:P_10">39%</xsl:when>
-                <xsl:when test="not($faWiersz/crd:P_11Vat) and not($faWiersz/crd:P_11A) and $faWiersz/crd:P_9B and not($faWiersz/crd:P_10)">46%</xsl:when>
-                
-                <xsl:when test="not($faWiersz/crd:P_11Vat) and not($faWiersz/crd:P_11A) and not($faWiersz/crd:P_9B) and $faWiersz/crd:P_10">48%</xsl:when>
-                <xsl:when test="not($faWiersz/crd:P_11Vat) and not($faWiersz/crd:P_11A) and not($faWiersz/crd:P_9B) and not($faWiersz/crd:P_10)">55%</xsl:when>
-            </xsl:choose>
+            <xsl:variable name="fixedWidth" select="17"/> <!-- Lp + Quantity + Unit -->
+            <xsl:variable name="indeksWidth" select="if ($faWiersz/crd:Indeks) then 8 else 0"/>
+            <xsl:variable name="p6aWidth" select="if ($faWiersz/crd:P_6A) then 9 else 0"/>
+            <xsl:variable name="p9aWidth" select="if ($faWiersz/crd:P_9A) then 10 else 0"/>
+            <xsl:variable name="p9bWidth" select="if ($faWiersz/crd:P_9B) then 10 else 0"/>
+            <xsl:variable name="p10Width" select="if ($faWiersz/crd:P_10) then 7 else 0"/>
+            <xsl:variable name="p12Width" select="if ($faWiersz/crd:P_12) then 8 else 0"/>
+            <xsl:variable name="p11Width" select="if ($faWiersz/crd:P_11) then 10 else 0"/>
+            <xsl:variable name="p11vatWidth" select="if ($faWiersz/crd:P_11Vat) then 7 else 0"/>
+            <xsl:variable name="p11aWidth" select="if ($faWiersz/crd:P_11A) then 10 else 0"/>
+            <xsl:variable name="calculatedWidth" select="100 - $fixedWidth - $indeksWidth - $p6aWidth - $p9aWidth - $p9bWidth - $p10Width - $p12Width - $p11Width - $p11vatWidth - $p11aWidth"/>
+            <xsl:value-of select="concat($calculatedWidth, '%')"/>
         </xsl:variable>
 
         <!-- Define the table structure -->
         <fo:table table-layout="fixed" width="100%" border-collapse="separate" space-after="5mm">
             <!-- Define table columns -->
             <fo:table-column column-width="4%"/> <!-- Lp. -->
+            <xsl:if test="$faWiersz/crd:Indeks">
+                <fo:table-column column-width="8%"/> <!-- Indeks -->
+            </xsl:if>
             <fo:table-column column-width="{$nameColumnWidth}"/> <!-- Nazwa - dynamiczna szerokość -->
             <fo:table-column column-width="8%"/> <!-- Ilość -->
             <fo:table-column column-width="5%"/> <!-- Jednostka -->
@@ -89,6 +81,9 @@
             <xsl:if test="$faWiersz/crd:P_11A">
                 <fo:table-column column-width="10%"/> <!-- Wartość sprzedaży brutto-->
             </xsl:if>
+            <xsl:if test="$faWiersz/crd:P_6A">
+                <fo:table-column column-width="9%"/> <!-- Data dostawy (P_6A) -->
+            </xsl:if>
 
             <!-- Table header -->
             <fo:table-header>
@@ -96,6 +91,11 @@
                     <fo:table-cell xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
                         <fo:block><xsl:value-of select="key('kLabels', 'row.lp', $labels)"/></fo:block>
                     </fo:table-cell>
+                    <xsl:if test="$faWiersz/crd:Indeks">
+                        <fo:table-cell xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
+                            <fo:block><xsl:value-of select="key('kLabels', 'row.indeks', $labels)"/></fo:block>
+                        </fo:table-cell>
+                    </xsl:if>
                     <fo:table-cell xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
                         <fo:block><xsl:value-of select="key('kLabels', 'row.productName', $labels)"/></fo:block>
                     </fo:table-cell>
@@ -140,6 +140,11 @@
                             <fo:block><xsl:value-of select="key('kLabels', 'row.grossValue', $labels)"/></fo:block>
                         </fo:table-cell>
                     </xsl:if>
+                    <xsl:if test="$faWiersz/crd:P_6A">
+                        <fo:table-cell xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
+                            <fo:block><xsl:value-of select="key('kLabels', 'row.deliveryDate', $labels)"/></fo:block>
+                        </fo:table-cell>
+                    </xsl:if>
                 </fo:table-row>
             </fo:table-header>
 
@@ -159,6 +164,13 @@
                     <xsl:value-of select="crd:NrWierszaFa"/> <!-- Lp -->
                 </fo:block>
             </fo:table-cell>
+            <xsl:if test="//crd:FaWiersz/crd:Indeks">
+                <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="left">
+                    <fo:block>
+                        <xsl:value-of select="crd:Indeks"/> <!-- Indeks -->
+                    </fo:block>
+                </fo:table-cell>
+            </xsl:if>
             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" padding-left="3pt">
                 <fo:block>
                     <xsl:value-of select="crd:P_7"/> <!-- Nazwa -->
@@ -170,9 +182,25 @@
                 </xsl:if>
             </fo:table-cell>
             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
-                <fo:block>
-                    <xsl:value-of select="crd:P_8B"/> <!-- Ilość -->
-                </fo:block>
+                <xsl:variable name="formattedQty" select="translate(format-number(number(crd:P_8B), '#,##0.######'), ',', '&#160;')"/>
+                <xsl:variable name="qtyLength" select="string-length($formattedQty)"/>
+                <xsl:choose>
+                    <xsl:when test="$qtyLength &gt; 14">
+                        <fo:block font-size="5pt">
+                            <xsl:value-of select="$formattedQty"/> <!-- Ilość -->
+                        </fo:block>
+                    </xsl:when>
+                    <xsl:when test="$qtyLength &gt; 10">
+                        <fo:block font-size="6pt">
+                            <xsl:value-of select="$formattedQty"/> <!-- Ilość -->
+                        </fo:block>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <fo:block>
+                            <xsl:value-of select="$formattedQty"/> <!-- Ilość -->
+                        </fo:block>
+                    </xsl:otherwise>
+                </xsl:choose>
             </fo:table-cell>
             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
                 <fo:block>
@@ -185,14 +213,7 @@
                         <xsl:choose>
                             <xsl:when test="crd:P_9A">
                                 <xsl:variable name="formattedNumber">
-                                    <xsl:choose>
-                                        <xsl:when test="$useExtendedDecimalPlaces">
-                                            <xsl:value-of select="translate(format-number(number(crd:P_9A), '#,##0.0000'), ',.', ' ,')"/>
-                                        </xsl:when>
-                                        <xsl:otherwise>
-                                            <xsl:value-of select="translate(format-number(number(crd:P_9A), '#,##0.00'), ',.', ' ,')"/>
-                                        </xsl:otherwise>
-                                    </xsl:choose>
+                                    <xsl:value-of select="translate(format-number(number(crd:P_9A), '#,##0.########'), ',.', ' ,')"/>
                                 </xsl:variable>
                                 <xsl:choose>
                                     <xsl:when test="string-length($formattedNumber) > 8">
@@ -216,14 +237,7 @@
                         <xsl:choose>
                             <xsl:when test="crd:P_9B">
                                 <xsl:variable name="formattedNumber">
-                                    <xsl:choose>
-                                        <xsl:when test="$useExtendedDecimalPlaces">
-                                            <xsl:value-of select="translate(format-number(number(crd:P_9B), '#,##0.0000'), ',.', ' ,')"/>
-                                        </xsl:when>
-                                        <xsl:otherwise>
-                                            <xsl:value-of select="translate(format-number(number(crd:P_9B), '#,##0.00'), ',.', ' ,')"/>
-                                        </xsl:otherwise>
-                                    </xsl:choose>
+                                    <xsl:value-of select="translate(format-number(number(crd:P_9B), '#,##0.########'), ',.', ' ,')"/>
                                 </xsl:variable>
                                 <xsl:choose>
                                     <xsl:when test="string-length($formattedNumber) > 8">
@@ -246,7 +260,7 @@
                     <fo:block>
                         <xsl:choose>
                             <xsl:when test="crd:P_10">
-                                <xsl:variable name="formattedNumber" select="translate(format-number(number(crd:P_10), '#,##0.00'), ',.', ' ,')"/>
+                                <xsl:variable name="formattedNumber" select="translate(format-number(number(crd:P_10), '#,##0.########'), ',.', ' ,')"/>
                                 <xsl:choose>
                                     <xsl:when test="string-length($formattedNumber) > 8">
                                         <fo:inline font-size="6pt"><xsl:value-of select="$formattedNumber"/></fo:inline>
@@ -344,6 +358,13 @@
                     </fo:block>
                 </fo:table-cell>
             </xsl:if>
+            <xsl:if test="//crd:FaWiersz/crd:P_6A">
+                <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="center">
+                    <fo:block>
+                        <xsl:value-of select="crd:P_6A"/> <!-- Data dostawy (P_6A) -->
+                    </fo:block>
+                </fo:table-cell>
+            </xsl:if>
         </fo:table-row>
     </xsl:template>
 
@@ -351,36 +372,29 @@
         <xsl:param name="faWierszBefore"/>
         <xsl:param name="faWierszAfter"/>
 
+        <!-- Calculate column width for name based on presence of other columns -->
+        <!-- Fixed columns: Lp (4%), Quantity (8%), Unit (5%) = 17% -->
+        <!-- Optional columns: Indeks (8%), P_6A (9%), P_9A (10%), P_9B (10%), P_10 (7%), P_12 (8% - always shown in differencesTable), P_11 (10%), P_11Vat (7%), P_11A (10%) -->
         <xsl:variable name="nameColumnWidth">
-            <xsl:choose>
-                <xsl:when test="$faWierszAfter/crd:P_11Vat and $faWierszAfter/crd:P_11A and $faWierszAfter/crd:P_9B and $faWierszAfter/crd:P_10">22%</xsl:when>
-                <xsl:when test="$faWierszAfter/crd:P_11Vat and $faWierszAfter/crd:P_11A and $faWierszAfter/crd:P_9B and not($faWierszAfter/crd:P_10)">29%</xsl:when>
-                
-                <xsl:when test="$faWierszAfter/crd:P_11Vat and $faWierszAfter/crd:P_11A and not($faWierszAfter/crd:P_9B) and $faWierszAfter/crd:P_10">31%</xsl:when>
-                <xsl:when test="$faWierszAfter/crd:P_11Vat and $faWierszAfter/crd:P_11A and not($faWierszAfter/crd:P_9B) and not($faWierszAfter/crd:P_10)">38%</xsl:when>
-                
-                <xsl:when test="$faWierszAfter/crd:P_11Vat and not($faWierszAfter/crd:P_11A) and $faWierszAfter/crd:P_9B and $faWierszAfter/crd:P_10">32%</xsl:when>
-                <xsl:when test="$faWierszAfter/crd:P_11Vat and not($faWierszAfter/crd:P_11A) and $faWierszAfter/crd:P_9B and not($faWierszAfter/crd:P_10)">39%</xsl:when>
-                
-                <xsl:when test="$faWierszAfter/crd:P_11Vat and not($faWierszAfter/crd:P_11A) and not($faWierszAfter/crd:P_9B) and $faWierszAfter/crd:P_10">41%</xsl:when>
-                <xsl:when test="$faWierszAfter/crd:P_11Vat and not($faWierszAfter/crd:P_11A) and not($faWierszAfter/crd:P_9B) and not($faWierszAfter/crd:P_10)">48%</xsl:when>
-                
-                <xsl:when test="not($faWierszAfter/crd:P_11Vat) and $faWierszAfter/crd:P_11A and $faWierszAfter/crd:P_9B and $faWierszAfter/crd:P_10">29%</xsl:when>
-                <xsl:when test="not($faWierszAfter/crd:P_11Vat) and $faWierszAfter/crd:P_11A and $faWierszAfter/crd:P_9B and not($faWierszAfter/crd:P_10)">36%</xsl:when>
-                
-                <xsl:when test="not($faWierszAfter/crd:P_11Vat) and $faWierszAfter/crd:P_11A and not($faWierszAfter/crd:P_9B) and $faWierszAfter/crd:P_10">38%</xsl:when>
-                <xsl:when test="not($faWierszAfter/crd:P_11Vat) and $faWierszAfter/crd:P_11A and not($faWierszAfter/crd:P_9B) and not($faWierszAfter/crd:P_10)">45%</xsl:when>
-                
-                <xsl:when test="not($faWierszAfter/crd:P_11Vat) and not($faWierszAfter/crd:P_11A) and $faWierszAfter/crd:P_9B and $faWierszAfter/crd:P_10">39%</xsl:when>
-                <xsl:when test="not($faWierszAfter/crd:P_11Vat) and not($faWierszAfter/crd:P_11A) and $faWierszAfter/crd:P_9B and not($faWierszAfter/crd:P_10)">46%</xsl:when>
-                
-                <xsl:when test="not($faWierszAfter/crd:P_11Vat) and not($faWierszAfter/crd:P_11A) and not($faWierszAfter/crd:P_9B) and $faWierszAfter/crd:P_10">48%</xsl:when>
-                <xsl:when test="not($faWierszAfter/crd:P_11Vat) and not($faWierszAfter/crd:P_11A) and not($faWierszAfter/crd:P_9B) and not($faWierszAfter/crd:P_10)">55%</xsl:when>
-            </xsl:choose>
+            <xsl:variable name="fixedWidth" select="17"/> <!-- Lp + Quantity + Unit -->
+            <xsl:variable name="indeksWidth" select="if ($faWierszAfter/crd:Indeks) then 8 else 0"/>
+            <xsl:variable name="p6aWidth" select="if ($faWierszAfter/crd:P_6A) then 9 else 0"/>
+            <xsl:variable name="p9aWidth" select="if ($faWierszAfter/crd:P_9A) then 10 else 0"/>
+            <xsl:variable name="p9bWidth" select="if ($faWierszAfter/crd:P_9B) then 10 else 0"/>
+            <xsl:variable name="p10Width" select="if ($faWierszAfter/crd:P_10) then 7 else 0"/>
+            <xsl:variable name="p12Width" select="8"/> <!-- Always shown in differencesTable -->
+            <xsl:variable name="p11Width" select="if ($faWierszAfter/crd:P_11) then 10 else 0"/>
+            <xsl:variable name="p11vatWidth" select="if ($faWierszAfter/crd:P_11Vat) then 7 else 0"/>
+            <xsl:variable name="p11aWidth" select="if ($faWierszAfter/crd:P_11A) then 10 else 0"/>
+            <xsl:variable name="calculatedWidth" select="100 - $fixedWidth - $indeksWidth - $p6aWidth - $p9aWidth - $p9bWidth - $p10Width - $p12Width - $p11Width - $p11vatWidth - $p11aWidth"/>
+            <xsl:value-of select="concat($calculatedWidth, '%')"/>
         </xsl:variable>
 
         <fo:table table-layout="fixed" width="100%" border-collapse="separate" space-after="5mm">
             <fo:table-column column-width="4%"/> <!-- Lp. -->
+            <xsl:if test="$faWierszAfter/crd:Indeks">
+                <fo:table-column column-width="8%"/> <!-- Indeks -->
+            </xsl:if>
             <fo:table-column column-width="{$nameColumnWidth}"/> <!-- Nazwa - dynamiczna szerokość -->
             <fo:table-column column-width="8%"/> <!-- Ilość -->
             <fo:table-column column-width="5%"/> <!-- Jednostka -->
@@ -403,6 +417,9 @@
             <xsl:if test="$faWierszAfter/crd:P_11A">
                 <fo:table-column column-width="10%"/> <!-- Wartość sprzedaży brutto-->
             </xsl:if>
+            <xsl:if test="$faWierszAfter/crd:P_6A">
+                <fo:table-column column-width="9%"/> <!-- Data dostawy (P_6A) -->
+            </xsl:if>
 
             <!-- Table header - identical to positionsTable -->
             <fo:table-header>
@@ -410,6 +427,11 @@
                     <fo:table-cell xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
                         <fo:block><xsl:value-of select="key('kLabels', 'row.lp', $labels)"/></fo:block>
                     </fo:table-cell>
+                    <xsl:if test="$faWierszAfter/crd:Indeks">
+                        <fo:table-cell xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
+                            <fo:block><xsl:value-of select="key('kLabels', 'row.indeks', $labels)"/></fo:block>
+                        </fo:table-cell>
+                    </xsl:if>
                     <fo:table-cell xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
                         <fo:block><xsl:value-of select="key('kLabels', 'row.productName', $labels)"/></fo:block>
                     </fo:table-cell>
@@ -452,6 +474,11 @@
                             <fo:block><xsl:value-of select="key('kLabels', 'row.grossValue', $labels)"/></fo:block>
                         </fo:table-cell>
                     </xsl:if>
+                    <xsl:if test="$faWierszAfter/crd:P_6A">
+                        <fo:table-cell xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
+                            <fo:block><xsl:value-of select="key('kLabels', 'row.deliveryDate', $labels)"/></fo:block>
+                        </fo:table-cell>
+                    </xsl:if>
                 </fo:table-row>
             </fo:table-header>
 
@@ -462,13 +489,18 @@
                     <xsl:variable name="lineNum" select="crd:NrWierszaFa"/>
                     <xsl:variable name="after" select="."/>
                     <xsl:variable name="before" select="$faWierszBefore[crd:NrWierszaFa = $lineNum]"/>
-                    
+
                     <!-- New flag to determine if this is a new row not in "before" -->
                     <xsl:variable name="isNewRow" select="not($before)"/>
                         <fo:table-row>
                             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding">
                                 <fo:block><xsl:value-of select="$lineNum"/></fo:block>
                             </fo:table-cell>
+                            <xsl:if test="$faWierszAfter/crd:Indeks">
+                                <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding">
+                                    <fo:block><xsl:value-of select="$after/crd:Indeks"/></fo:block>
+                                </fo:table-cell>
+                            </xsl:if>
                             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding">
                                 <fo:block><xsl:value-of select="$after/crd:P_7"/></fo:block>
                                 <xsl:if test="$after/crd:GTIN">
@@ -477,46 +509,53 @@
                                     </fo:block>
                                 </xsl:if>
                             </fo:table-cell>
-                            
+
                             <!-- Quantity - for new rows, show exact "after" value, otherwise show difference -->
                             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
-                                <fo:block>
-                                    <xsl:variable name="formattedNumber">
-                                        <xsl:choose>
-                                            <xsl:when test="$isNewRow">
-                                                <xsl:value-of select="translate(format-number(number($after/crd:P_8B), '#,##0.00'), ',.', ' ,')"/>
-                                            </xsl:when>
-                                            <xsl:when test="$before/crd:P_8B and $after/crd:P_8B">
-                                                <xsl:value-of select="translate(format-number(number($after/crd:P_8B) - number($before/crd:P_8B), '#,##0.00'), ',.', ' ,')"/>
-                                            </xsl:when>
-                                            <xsl:when test="not($before/crd:P_8B) and $after/crd:P_8B">
-                                                <xsl:value-of select="translate(format-number(number($after/crd:P_8B), '#,##0.00'), ',.', ' ,')"/>
-                                            </xsl:when>
-                                            <xsl:when test="$before/crd:P_8B and not($after/crd:P_8B)">
-                                                <xsl:value-of select="translate(format-number(-number($before/crd:P_8B), '#,##0.00'), ',.', ' ,')"/>
-                                            </xsl:when>
-                                            <xsl:otherwise>0,00</xsl:otherwise>
-                                        </xsl:choose>
-                                    </xsl:variable>
-                                    
+                                <xsl:variable name="formattedQty">
                                     <xsl:choose>
-                                        <xsl:when test="string-length($formattedNumber) > 8">
-                                            <fo:inline font-size="6pt"><xsl:value-of select="$formattedNumber"/></fo:inline>
+                                        <xsl:when test="$isNewRow">
+                                            <xsl:value-of select="translate(format-number(number($after/crd:P_8B), '#,##0.######'), ',', '&#160;')"/>
                                         </xsl:when>
-                                        <xsl:otherwise>
-                                            <xsl:value-of select="$formattedNumber"/>
-                                        </xsl:otherwise>
+                                        <xsl:when test="$before/crd:P_8B and $after/crd:P_8B">
+                                            <xsl:value-of select="translate(format-number(number($after/crd:P_8B) - number($before/crd:P_8B), '#,##0.######'), ',', '&#160;')"/>
+                                        </xsl:when>
+                                        <xsl:when test="not($before/crd:P_8B) and $after/crd:P_8B">
+                                            <xsl:value-of select="translate(format-number(number($after/crd:P_8B), '#,##0.######'), ',', '&#160;')"/>
+                                        </xsl:when>
+                                        <xsl:when test="$before/crd:P_8B and not($after/crd:P_8B)">
+                                            <xsl:value-of select="translate(format-number(-number($before/crd:P_8B), '#,##0.######'), ',', '&#160;')"/>
+                                        </xsl:when>
+                                        <xsl:otherwise>0</xsl:otherwise>
                                     </xsl:choose>
-                                </fo:block>
+                                </xsl:variable>
+                                <xsl:variable name="qtyLength" select="string-length($formattedQty)"/>
+                                <xsl:choose>
+                                    <xsl:when test="$qtyLength &gt; 14">
+                                        <fo:block font-size="5pt">
+                                            <xsl:value-of select="$formattedQty"/>
+                                        </fo:block>
+                                    </xsl:when>
+                                    <xsl:when test="$qtyLength &gt; 10">
+                                        <fo:block font-size="6pt">
+                                            <xsl:value-of select="$formattedQty"/>
+                                        </fo:block>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <fo:block>
+                                            <xsl:value-of select="$formattedQty"/>
+                                        </fo:block>
+                                    </xsl:otherwise>
+                                </xsl:choose>
                             </fo:table-cell>
-                            
+
                             <!-- Unit - show only "after" value -->
                             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
                                 <fo:block>
                                     <xsl:value-of select="$after/crd:P_8A"/>
                                 </fo:block>
                             </fo:table-cell>
-                            
+
                             <!-- Net unit price difference with font-size adjustment -->
                             <xsl:if test="$faWierszAfter/crd:P_9A">
                                 <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
@@ -524,49 +563,21 @@
                                         <xsl:variable name="formattedNumber">
                                             <xsl:choose>
                                                 <xsl:when test="$isNewRow and $after/crd:P_9A">
-                                                    <xsl:choose>
-                                                        <xsl:when test="$useExtendedDecimalPlaces">
-                                                            <xsl:value-of select="translate(format-number(number($after/crd:P_9A), '#,##0.0000'), ',.', ' ,')"/>
-                                                        </xsl:when>
-                                                        <xsl:otherwise>
-                                                            <xsl:value-of select="translate(format-number(number($after/crd:P_9A), '#,##0.00'), ',.', ' ,')"/>
-                                                        </xsl:otherwise>
-                                                    </xsl:choose>
+                                                    <xsl:value-of select="translate(format-number(number($after/crd:P_9A), '#,##0.########'), ',.', ' ,')"/>
                                                 </xsl:when>
                                                 <xsl:when test="$before/crd:P_9A and $after/crd:P_9A and $before/crd:P_9A != $after/crd:P_9A">
-                                                    <xsl:choose>
-                                                        <xsl:when test="$useExtendedDecimalPlaces">
-                                                            <xsl:value-of select="translate(format-number(number($after/crd:P_9A) - number($before/crd:P_9A), '#,##0.0000'), ',.', ' ,')"/>
-                                                        </xsl:when>
-                                                        <xsl:otherwise>
-                                                            <xsl:value-of select="translate(format-number(number($after/crd:P_9A) - number($before/crd:P_9A), '#,##0.00'), ',.', ' ,')"/>
-                                                        </xsl:otherwise>
-                                                    </xsl:choose>
+                                                    <xsl:value-of select="translate(format-number(number($after/crd:P_9A) - number($before/crd:P_9A), '#,##0.########'), ',.', ' ,')"/>
                                                 </xsl:when>
                                                 <xsl:when test="not($before/crd:P_9A) and $after/crd:P_9A">
-                                                    <xsl:choose>
-                                                        <xsl:when test="$useExtendedDecimalPlaces">
-                                                            <xsl:value-of select="translate(format-number(number($after/crd:P_9A), '#,##0.0000'), ',.', ' ,')"/>
-                                                        </xsl:when>
-                                                        <xsl:otherwise>
-                                                            <xsl:value-of select="translate(format-number(number($after/crd:P_9A), '#,##0.00'), ',.', ' ,')"/>
-                                                        </xsl:otherwise>
-                                                    </xsl:choose>
+                                                    <xsl:value-of select="translate(format-number(number($after/crd:P_9A), '#,##0.########'), ',.', ' ,')"/>
                                                 </xsl:when>
                                                 <xsl:when test="$before/crd:P_9A and not($after/crd:P_9A)">
-                                                    <xsl:choose>
-                                                        <xsl:when test="$useExtendedDecimalPlaces">
-                                                            <xsl:value-of select="translate(format-number(-number($before/crd:P_9A), '#,##0.0000'), ',.', ' ,')"/>
-                                                        </xsl:when>
-                                                        <xsl:otherwise>
-                                                            <xsl:value-of select="translate(format-number(-number($before/crd:P_9A), '#,##0.00'), ',.', ' ,')"/>
-                                                        </xsl:otherwise>
-                                                    </xsl:choose>
+                                                    <xsl:value-of select="translate(format-number(-number($before/crd:P_9A), '#,##0.########'), ',.', ' ,')"/>
                                                 </xsl:when>
                                                 <xsl:otherwise>0,00</xsl:otherwise>
                                             </xsl:choose>
                                         </xsl:variable>
-                                        
+
                                         <xsl:choose>
                                             <xsl:when test="string-length($formattedNumber) > 8">
                                                 <fo:inline font-size="6pt"><xsl:value-of select="$formattedNumber"/></fo:inline>
@@ -578,7 +589,7 @@
                                     </fo:block>
                                 </fo:table-cell>
                             </xsl:if>
-                            
+
                             <!-- Gross unit price difference with font-size adjustment -->
                             <xsl:if test="$faWierszAfter/crd:P_9B">
                                 <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
@@ -586,49 +597,21 @@
                                         <xsl:variable name="formattedNumber">
                                             <xsl:choose>
                                                 <xsl:when test="$isNewRow and $after/crd:P_9B">
-                                                    <xsl:choose>
-                                                        <xsl:when test="$useExtendedDecimalPlaces">
-                                                            <xsl:value-of select="translate(format-number(number($after/crd:P_9B), '#,##0.0000'), ',.', ' ,')"/>
-                                                        </xsl:when>
-                                                        <xsl:otherwise>
-                                                            <xsl:value-of select="translate(format-number(number($after/crd:P_9B), '#,##0.00'), ',.', ' ,')"/>
-                                                        </xsl:otherwise>
-                                                    </xsl:choose>
+                                                    <xsl:value-of select="translate(format-number(number($after/crd:P_9B), '#,##0.########'), ',.', ' ,')"/>
                                                 </xsl:when>
                                                 <xsl:when test="$before/crd:P_9B and $after/crd:P_9B and $before/crd:P_9B != $after/crd:P_9B">
-                                                    <xsl:choose>
-                                                        <xsl:when test="$useExtendedDecimalPlaces">
-                                                            <xsl:value-of select="translate(format-number(number($after/crd:P_9B) - number($before/crd:P_9B), '#,##0.0000'), ',.', ' ,')"/>
-                                                        </xsl:when>
-                                                        <xsl:otherwise>
-                                                            <xsl:value-of select="translate(format-number(number($after/crd:P_9B) - number($before/crd:P_9B), '#,##0.00'), ',.', ' ,')"/>
-                                                        </xsl:otherwise>
-                                                    </xsl:choose>
+                                                    <xsl:value-of select="translate(format-number(number($after/crd:P_9B) - number($before/crd:P_9B), '#,##0.########'), ',.', ' ,')"/>
                                                 </xsl:when>
                                                 <xsl:when test="not($before/crd:P_9B) and $after/crd:P_9B">
-                                                    <xsl:choose>
-                                                        <xsl:when test="$useExtendedDecimalPlaces">
-                                                            <xsl:value-of select="translate(format-number(number($after/crd:P_9B), '#,##0.0000'), ',.', ' ,')"/>
-                                                        </xsl:when>
-                                                        <xsl:otherwise>
-                                                            <xsl:value-of select="translate(format-number(number($after/crd:P_9B), '#,##0.00'), ',.', ' ,')"/>
-                                                        </xsl:otherwise>
-                                                    </xsl:choose>
+                                                    <xsl:value-of select="translate(format-number(number($after/crd:P_9B), '#,##0.########'), ',.', ' ,')"/>
                                                 </xsl:when>
                                                 <xsl:when test="$before/crd:P_9B and not($after/crd:P_9B)">
-                                                    <xsl:choose>
-                                                        <xsl:when test="$useExtendedDecimalPlaces">
-                                                            <xsl:value-of select="translate(format-number(-number($before/crd:P_9B), '#,##0.0000'), ',.', ' ,')"/>
-                                                        </xsl:when>
-                                                        <xsl:otherwise>
-                                                            <xsl:value-of select="translate(format-number(-number($before/crd:P_9B), '#,##0.00'), ',.', ' ,')"/>
-                                                        </xsl:otherwise>
-                                                    </xsl:choose>
+                                                    <xsl:value-of select="translate(format-number(-number($before/crd:P_9B), '#,##0.########'), ',.', ' ,')"/>
                                                 </xsl:when>
                                                 <xsl:otherwise>0,00</xsl:otherwise>
                                             </xsl:choose>
                                         </xsl:variable>
-                                        
+
                                         <xsl:choose>
                                             <xsl:when test="string-length($formattedNumber) > 8">
                                                 <fo:inline font-size="6pt"><xsl:value-of select="$formattedNumber"/></fo:inline>
@@ -640,7 +623,7 @@
                                     </fo:block>
                                 </fo:table-cell>
                             </xsl:if>
-                            
+
                             <!-- Discount difference with font-size adjustment -->
                             <xsl:if test="$faWierszAfter/crd:P_10">
                                 <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
@@ -648,21 +631,21 @@
                                         <xsl:variable name="formattedNumber">
                                             <xsl:choose>
                                                 <xsl:when test="$isNewRow and $after/crd:P_10">
-                                                    <xsl:value-of select="translate(format-number(number($after/crd:P_10), '#,##0.00'), ',.', ' ,')"/>
+                                                    <xsl:value-of select="translate(format-number(number($after/crd:P_10), '#,##0.########'), ',.', ' ,')"/>
                                                 </xsl:when>
                                                 <xsl:when test="$before/crd:P_10 and $after/crd:P_10 and $before/crd:P_10 != $after/crd:P_10">
-                                                    <xsl:value-of select="translate(format-number(number($after/crd:P_10) - number($before/crd:P_10), '#,##0.00'), ',.', ' ,')"/>
+                                                    <xsl:value-of select="translate(format-number(number($after/crd:P_10) - number($before/crd:P_10), '#,##0.########'), ',.', ' ,')"/>
                                                 </xsl:when>
                                                 <xsl:when test="not($before/crd:P_10) and $after/crd:P_10">
-                                                    <xsl:value-of select="translate(format-number(number($after/crd:P_10), '#,##0.00'), ',.', ' ,')"/>
+                                                    <xsl:value-of select="translate(format-number(number($after/crd:P_10), '#,##0.########'), ',.', ' ,')"/>
                                                 </xsl:when>
                                                 <xsl:when test="$before/crd:P_10 and not($after/crd:P_10)">
-                                                    <xsl:value-of select="translate(format-number(-number($before/crd:P_10), '#,##0.00'), ',.', ' ,')"/>
+                                                    <xsl:value-of select="translate(format-number(-number($before/crd:P_10), '#,##0.########'), ',.', ' ,')"/>
                                                 </xsl:when>
                                                 <xsl:otherwise>0,00</xsl:otherwise>
                                             </xsl:choose>
                                         </xsl:variable>
-                                        
+
                                         <xsl:choose>
                                             <xsl:when test="string-length($formattedNumber) > 8">
                                                 <fo:inline font-size="6pt"><xsl:value-of select="$formattedNumber"/></fo:inline>
@@ -674,7 +657,7 @@
                                     </fo:block>
                                 </fo:table-cell>
                             </xsl:if>
-                            
+
                             <!-- Tax rate - show only "after" value -->
                             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
                                 <fo:block>
@@ -689,7 +672,7 @@
                                     </xsl:choose>
                                 </fo:block>
                             </fo:table-cell>
-                            
+
                             <!-- Net value difference with font-size adjustment -->
                             <xsl:if test="$faWierszAfter/crd:P_11">
                                 <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
@@ -711,7 +694,7 @@
                                                 <xsl:otherwise>0,00</xsl:otherwise>
                                             </xsl:choose>
                                         </xsl:variable>
-                                        
+
                                         <xsl:choose>
                                             <xsl:when test="string-length($formattedNumber) > 8">
                                                 <fo:inline font-size="6pt"><xsl:value-of select="$formattedNumber"/></fo:inline>
@@ -723,7 +706,7 @@
                                     </fo:block>
                                 </fo:table-cell>
                             </xsl:if>
-                            
+
                             <!-- VAT amount difference with font-size adjustment -->
                             <xsl:if test="$faWierszAfter/crd:P_11Vat">
                                 <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
@@ -745,7 +728,7 @@
                                                 <xsl:otherwise>0,00</xsl:otherwise>
                                             </xsl:choose>
                                         </xsl:variable>
-                                        
+
                                         <xsl:choose>
                                             <xsl:when test="string-length($formattedNumber) > 8">
                                                 <fo:inline font-size="6pt"><xsl:value-of select="$formattedNumber"/></fo:inline>
@@ -757,7 +740,7 @@
                                     </fo:block>
                                 </fo:table-cell>
                             </xsl:if>
-                            
+
                             <!-- Gross value difference with font-size adjustment -->
                             <xsl:if test="$faWierszAfter/crd:P_11A">
                                 <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
@@ -779,7 +762,7 @@
                                                 <xsl:otherwise>0,00</xsl:otherwise>
                                             </xsl:choose>
                                         </xsl:variable>
-                                        
+
                                         <xsl:choose>
                                             <xsl:when test="string-length($formattedNumber) > 8">
                                                 <fo:inline font-size="6pt"><xsl:value-of select="$formattedNumber"/></fo:inline>
@@ -788,6 +771,14 @@
                                                 <xsl:value-of select="$formattedNumber"/>
                                             </xsl:otherwise>
                                         </xsl:choose>
+                                    </fo:block>
+                                </fo:table-cell>
+                            </xsl:if>
+                            <!-- P_6A (Data dostawy) - show only "after" value -->
+                            <xsl:if test="$faWierszAfter/crd:P_6A">
+                                <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="center">
+                                    <fo:block>
+                                        <xsl:value-of select="$after/crd:P_6A"/>
                                     </fo:block>
                                 </fo:table-cell>
                             </xsl:if>

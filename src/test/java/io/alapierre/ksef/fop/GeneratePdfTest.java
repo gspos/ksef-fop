@@ -235,6 +235,22 @@ class GeneratePdfTest {
     }
 
     @Test
+    void generateFa3ExtInvoicePdfTest1() throws Exception {
+        PdfGenerator generator = new PdfGenerator(new FileInputStream("src/test/resources/fop.xconf"));
+
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream("src/test/resources/invoice_fa3_ext_test_1.pdf"))) {
+
+            byte[] invoiceXml = Files.readAllBytes(Paths.get("src/test/resources/faktury/fa3/gspos/test_1.xml"));
+
+            InvoiceGenerationParams invoiceGenerationParams = InvoiceGenerationParams.builder()
+                    .schema(InvoiceSchema.FA3_1_0_E)
+                    .customTemplatePath("templates/fa3/ksef-invoice-ext.xsl")
+                    .build();
+            generator.generateInvoice(invoiceXml, invoiceGenerationParams, out);
+        }
+    }
+
+    @Test
     void generateInvoicePdfWithAdditionalData() throws Exception {
         String ksefNumber = "6891152920-20251008-010000B4CF64-9C";
         String verificationLink = "https://ksef-test.mf.gov.pl/web/verify/6891152920-20231221-B3242FB4B54B-DF/ssTckvmMFEeA3vp589ExHzTRVhbDksjcFzKoXi4K%2F%2F0%3D";

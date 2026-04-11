@@ -228,7 +228,7 @@ class GeneratePdfTest {
 
             InvoiceGenerationParams invoiceGenerationParams = InvoiceGenerationParams.builder()
                     .schema(InvoiceSchema.FA3_1_0_E)
-                    .customTemplatePath("templates/fa3/ksef-invoice-ext.xsl")
+                    .templatePath("templates/fa3/ksef-invoice-ext.xsl")
                     .build();
             generator.generateInvoice(invoiceXml, invoiceGenerationParams, out);
         }
@@ -244,7 +244,7 @@ class GeneratePdfTest {
 
             InvoiceGenerationParams invoiceGenerationParams = InvoiceGenerationParams.builder()
                     .schema(InvoiceSchema.FA3_1_0_E)
-                    .customTemplatePath("templates/fa3/ksef-invoice-ext.xsl")
+                    .templatePath("templates/fa3/ksef-invoice-ext.xsl")
                     .build();
             generator.generateInvoice(invoiceXml, invoiceGenerationParams, out);
         }

@@ -314,9 +314,6 @@ public class PdfGenerator {
     }
 
     private static String resolveXslTemplate(InvoiceGenerationParams params) {
-        if (params.getCustomTemplatePath() != null) {
-            return params.getCustomTemplatePath();
-        }
         switch (params.getSchema()) {
             case FA2_1_0_E:
                 return "templates/fa2/ksef_invoice.xsl";

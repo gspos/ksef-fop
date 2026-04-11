@@ -3,20 +3,22 @@
                 xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:fo="http://www.w3.org/1999/XSL/Format"
-                xmlns:crd="http://crd.gov.pl/wzor/2025/06/25/13775/">
+                xmlns:crd="http://crd.gov.pl/wzor/2025/06/25/13775/"
+                xmlns:local="urn:local"
+                xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <!-- Autor: Karol Bryzgiel (karol.bryzgiel@soft-project.pl) -->
 
-    <!-- Załadowanie schematu XSD jako dokument XML -->
+    <!-- Załadowanie schematu XSD jako dokument XML (nazwy krajów w adresach — KodKraju) -->
     <xsl:variable name="kodyKrajowXSD" select="document('http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/KodyKrajow_v10-0E.xsd')"/>
 
-    <!-- Szablon do mapowania kodu kraju na nazwę -->
+    <!-- Import common functions -->
+    <xsl:import href="common-functions.xsl"/>
+
+    <!-- Mapowanie kodu ISO na nazwę z XSD (dla crd:KodKraju w adresie; nie używać dla PrefiksPodatnika) -->
     <xsl:template name="mapKodKrajuToNazwa">
         <xsl:param name="kodKraju"/>
 
-        <!-- Szukanie elementu enumeration z odpowiednim value -->
         <xsl:variable name="enumeration" select="$kodyKrajowXSD//xsd:enumeration[@value=$kodKraju]"/>
-
-        <!-- Pobieranie tekstu z elementu documentation -->
         <xsl:variable name="nazwaKraju" select="$enumeration/xsd:annotation/xsd:documentation/text()"/>
 
         <xsl:choose>
@@ -24,7 +26,7 @@
                 <xsl:value-of select="$nazwaKraju"/>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:value-of select="$kodKraju"/> <!-- Zwraca kod, jeśli nie znaleziono mapowania -->
+                <xsl:value-of select="$kodKraju"/>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
@@ -201,29 +203,30 @@
 
                     <!-- Typ faktury -->
                     <fo:block font-size="9pt" text-align="right" space-after="2mm">
+                        <xsl:variable name="invoiceType" select="normalize-space(string(crd:Fa/crd:RodzajFaktury))"/>
                         <xsl:choose>
-                            <xsl:when test="crd:Fa/crd:RodzajFaktury = 'VAT'">
+                            <xsl:when test="$invoiceType = 'VAT'">
                                 <xsl:value-of select="key('kLabels', 'basic.invoice', $labels)"/>
                             </xsl:when>
-                            <xsl:when test="crd:Fa/crd:RodzajFaktury = 'ZAL'">
+                            <xsl:when test="$invoiceType = 'ZAL'">
                                 <xsl:value-of select="key('kLabels', 'invoice.advance', $labels)"/>
                             </xsl:when>
                             <xsl:when test="crd:Fa/crd:OkresFaKorygowanej">
                                 <xsl:value-of select="key('kLabels', 'invoice.correctionBulk', $labels)"/>
                             </xsl:when>
-                            <xsl:when test="crd:Fa/crd:RodzajFaktury = 'KOR'">
+                            <xsl:when test="$invoiceType = 'KOR'">
                                 <xsl:value-of select="key('kLabels', 'invoice.correction', $labels)"/>
                             </xsl:when>
-                            <xsl:when test="crd:Fa/crd:RodzajFaktury = 'ROZ'">
+                            <xsl:when test="$invoiceType = 'ROZ'">
                                 <xsl:value-of select="key('kLabels', 'invoice.settlement', $labels)"/>
                             </xsl:when>
-                            <xsl:when test="crd:Fa/crd:RodzajFaktury = 'UPR'">
+                            <xsl:when test="$invoiceType = 'UPR'">
                                 <xsl:value-of select="key('kLabels', 'invoice.simplified', $labels)"/>
                             </xsl:when>
-                            <xsl:when test="crd:Fa/crd:RodzajFaktury = 'KOR_ZAL'">
+                            <xsl:when test="$invoiceType = 'KOR_ZAL'">
                                 <xsl:value-of select="key('kLabels', 'invoice.correctionAdvance', $labels)"/>
                             </xsl:when>
-                            <xsl:when test="crd:Fa/crd:RodzajFaktury = 'KOR_ROZ'">
+                            <xsl:when test="$invoiceType = 'KOR_ROZ'">
                                 <xsl:value-of select="key('kLabels', 'invoice.correctionSettlement', $labels)"/>
                             </xsl:when>
                             <xsl:otherwise>
@@ -366,9 +369,7 @@
                                             <xsl:if test="crd:Fa/crd:Podmiot1K/crd:PrefiksPodatnika">
                                                 <fo:block text-align="left" padding-bottom="3px">
                                                     <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'vatUe.prefix', $labels)"/>: </fo:inline>
-                                                    <xsl:call-template name="mapKodKrajuToNazwa">
-                                                        <xsl:with-param name="kodKraju" select="crd:Fa/crd:Podmiot1K/crd:PrefiksPodatnika"/>
-                                                    </xsl:call-template>
+                                                    <xsl:value-of select="crd:Fa/crd:Podmiot1K/crd:PrefiksPodatnika"/>
                                                 </fo:block>
                                             </xsl:if>
                                             <fo:block text-align="left" padding-bottom="3px" font-size="7pt">
@@ -388,23 +389,7 @@
                                                 <xsl:value-of
                                                         select="crd:Fa/crd:Podmiot1K/crd:DaneIdentyfikacyjne/crd:Nazwa"/>
                                             </fo:block>
-                                            <fo:block text-align="left" padding-bottom="3px" padding-top="16px">
-                                                <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'address', $labels)"/></fo:inline>
-                                            </fo:block>
-                                            <fo:block text-align="left">
-                                                <xsl:value-of select="crd:Fa/crd:Podmiot1K/crd:Adres/crd:AdresL1"/>
-                                                <xsl:if test="crd:Fa/crd:Podmiot1K/crd:Adres/crd:AdresL2">
-                                                    <fo:inline>, </fo:inline>
-                                                    <xsl:value-of select="crd:Fa/crd:Podmiot1K/crd:Adres/crd:AdresL2"/>
-                                                </xsl:if>
-                                                <xsl:if test="crd:Fa/crd:Podmiot1K/crd:Adres/crd:KodKraju">
-                                                    <fo:block>
-                                                        <xsl:call-template name="mapKodKrajuToNazwa">
-                                                            <xsl:with-param name="kodKraju" select="crd:Fa/crd:Podmiot1K/crd:Adres/crd:KodKraju"/>
-                                                        </xsl:call-template>
-                                                    </fo:block>
-                                                </xsl:if>
-                                            </fo:block>
+                                            <xsl:apply-templates select="crd:Fa/crd:Podmiot1K/crd:Adres" mode="blocks"/>
                                         </fo:table-cell>
 
                                         <fo:table-cell>
@@ -417,9 +402,7 @@
                                             <xsl:if test="crd:Podmiot1/crd:PrefiksPodatnika">
                                                 <fo:block text-align="left" padding-bottom="3px">
                                                     <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'vatUe.prefix', $labels)"/>: </fo:inline>
-                                                    <xsl:call-template name="mapKodKrajuToNazwa">
-                                                        <xsl:with-param name="kodKraju" select="crd:Podmiot1/crd:PrefiksPodatnika"/>
-                                                    </xsl:call-template>
+                                                    <xsl:value-of select="crd:Podmiot1/crd:PrefiksPodatnika"/>
                                                 </fo:block>
                                             </xsl:if>
                                             <fo:block text-align="left" padding-bottom="3px" font-size="7pt">
@@ -439,23 +422,8 @@
                                                 <xsl:value-of
                                                         select="crd:Podmiot1/crd:DaneIdentyfikacyjne/crd:Nazwa"/>
                                             </fo:block>
-                                            <fo:block text-align="left" padding-bottom="3px" padding-top="16px">
-                                                <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'address', $labels)"/></fo:inline>
-                                            </fo:block>
-                                            <fo:block text-align="left">
-                                                <xsl:value-of select="crd:Podmiot1/crd:Adres/crd:AdresL1"/>
-                                                <xsl:if test="crd:Podmiot1/crd:Adres/crd:AdresL2">
-                                                    <fo:inline>, </fo:inline>
-                                                    <xsl:value-of select="crd:Podmiot1/crd:Adres/crd:AdresL2"/>
-                                                </xsl:if>
-                                                <xsl:if test="crd:Podmiot1/crd:Adres/crd:KodKraju">
-                                                    <fo:block>
-                                                        <xsl:call-template name="mapKodKrajuToNazwa">
-                                                            <xsl:with-param name="kodKraju" select="crd:Podmiot1/crd:Adres/crd:KodKraju"/>
-                                                        </xsl:call-template>
-                                                    </fo:block>
-                                                </xsl:if>
-                                            </fo:block>
+                                            <xsl:apply-templates select="crd:Podmiot1/crd:Adres" mode="blocks"/>
+                                            <xsl:apply-templates select="crd:Podmiot1/crd:AdresKoresp" mode="blocks"/>
                                         </fo:table-cell>
                                     </fo:table-row>
                                 </fo:table-body>
@@ -694,23 +662,7 @@
                                                 <xsl:value-of
                                                         select="crd:Fa/crd:Podmiot2K/crd:DaneIdentyfikacyjne/crd:Nazwa"/>
                                             </fo:block>
-                                            <fo:block text-align="left" padding-bottom="3px" padding-top="16px">
-                                                <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'address', $labels)"/></fo:inline>
-                                            </fo:block>
-                                            <fo:block text-align="left">
-                                                <xsl:value-of select="crd:Fa/crd:Podmiot2K/crd:Adres/crd:AdresL1"/>
-                                                <xsl:if test="crd:Fa/crd:Podmiot2K/crd:Adres/crd:AdresL2">
-                                                    <fo:inline>, </fo:inline>
-                                                    <xsl:value-of select="crd:Fa/crd:Podmiot2K/crd:Adres/crd:AdresL2"/>
-                                                </xsl:if>
-                                                <xsl:if test="crd:Fa/crd:Podmiot2K/crd:Adres/crd:KodKraju">
-                                                    <fo:block>
-                                                        <xsl:call-template name="mapKodKrajuToNazwa">
-                                                            <xsl:with-param name="kodKraju" select="crd:Fa/crd:Podmiot2K/crd:Adres/crd:KodKraju"/>
-                                                        </xsl:call-template>
-                                                    </fo:block>
-                                                </xsl:if>
-                                            </fo:block>
+                                            <xsl:apply-templates select="crd:Fa/crd:Podmiot2K/crd:Adres" mode="blocks"/>
                                         </fo:table-cell>
 
                                         <fo:table-cell>
@@ -751,23 +703,8 @@
                                                 <xsl:value-of
                                                         select="crd:Podmiot2/crd:DaneIdentyfikacyjne/crd:Nazwa"/>
                                             </fo:block>
-                                            <fo:block text-align="left" padding-bottom="3px" padding-top="16px">
-                                                <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'address', $labels)"/></fo:inline>
-                                            </fo:block>
-                                            <fo:block text-align="left">
-                                                <xsl:value-of select="crd:Podmiot2/crd:Adres/crd:AdresL1"/>
-                                                <xsl:if test="crd:Podmiot2/crd:Adres/crd:AdresL2">
-                                                    <fo:inline>, </fo:inline>
-                                                    <xsl:value-of select="crd:Podmiot2/crd:Adres/crd:AdresL2"/>
-                                                </xsl:if>
-                                                <xsl:if test="crd:Podmiot2/crd:Adres/crd:KodKraju">
-                                                    <fo:block>
-                                                        <xsl:call-template name="mapKodKrajuToNazwa">
-                                                            <xsl:with-param name="kodKraju" select="crd:Podmiot2/crd:Adres/crd:KodKraju"/>
-                                                        </xsl:call-template>
-                                                    </fo:block>
-                                                </xsl:if>
-                                            </fo:block>
+                                            <xsl:apply-templates select="crd:Podmiot2/crd:Adres" mode="blocks"/>
+                                            <xsl:apply-templates select="crd:Podmiot2/crd:AdresKoresp" mode="blocks"/>
                                         </fo:table-cell>
                                     </fo:table-row>
                                 </fo:table-body>
@@ -776,7 +713,8 @@
                     </xsl:choose>
 
                     <!-- Podmioty inne -->
-                    <xsl:if test="crd:Podmiot3[crd:Rola != 5]">
+                    <xsl:variable name="otherParties" select="crd:Podmiot3[crd:RolaInna or crd:Rola != 5]"/>
+                    <xsl:if test="$otherParties">
                         <!-- Linia oddzielająca -->
                         <fo:block border-bottom="solid 1px grey" space-before="5mm"/>
                         <!-- Table z podmiotami innymi-->
@@ -785,36 +723,53 @@
                             <fo:table-column column-width="50%"/>
 
                             <fo:table-body>
-                                <!-- Iterujemy przez wszystkie elementy Podmiot3, zaczynając od pierwszego elementu -->
-                                <xsl:for-each select="crd:Podmiot3[crd:Rola != 5][position() mod 2 = 1]">
+                                <!-- Iterujemy parami -->
+                                <xsl:for-each-group select="$otherParties" group-adjacent="(position() - 1) idiv 2">
                                     <fo:table-row>
-                                        <!-- Pierwsza komórka w wierszu -->
                                         <fo:table-cell>
                                             <fo:block font-size="7pt">
-                                                <xsl:apply-templates select="."/>
+                                                <xsl:apply-templates select="current-group()[1]"/>
                                             </fo:block>
                                         </fo:table-cell>
 
-                                        <!-- Druga komórka, jeśli istnieje element na następnej pozycji -->
-                                        <xsl:choose>
-                                            <xsl:when test="following-sibling::crd:Podmiot3[crd:Rola != 5]">
-                                                <fo:table-cell>
-                                                    <fo:block font-size="7pt">
-                                                        <xsl:apply-templates select="following-sibling::crd:Podmiot3[1]"/>
-                                                    </fo:block>
-                                                </fo:table-cell>
-                                            </xsl:when>
-                                            <!-- Jeśli nie ma następnego elementu, dodajemy pustą komórkę -->
-                                            <xsl:otherwise>
-                                                <fo:table-cell>
-                                                    <fo:block/>
-                                                </fo:table-cell>
-                                            </xsl:otherwise>
-                                        </xsl:choose>
+                                        <fo:table-cell>
+                                            <fo:block font-size="7pt">
+                                                <xsl:apply-templates select="current-group()[2]"/>
+                                            </fo:block>
+                                        </fo:table-cell>
                                     </fo:table-row>
-                                </xsl:for-each>
+                                </xsl:for-each-group>
                             </fo:table-body>
                         </fo:table>
+                        <xsl:variable name="otherPartyRolesWithDescriptionSorted" as="xs:string*">
+                            <xsl:call-template name="rolesWithDescriptionInDocOrder">
+                                <xsl:with-param name="invoiceRoot" select="."/>
+                            </xsl:call-template>
+                        </xsl:variable>
+                        <xsl:if test="exists($otherPartyRolesWithDescriptionSorted)">
+                            <fo:block space-before="2mm">
+                                <xsl:for-each select="$otherPartyRolesWithDescriptionSorted">
+                                    <xsl:variable name="descKey">
+                                        <xsl:call-template name="roleDescriptionPropertyKey">
+                                            <xsl:with-param name="rola" select="."/>
+                                        </xsl:call-template>
+                                    </xsl:variable>
+                                    <fo:block font-size="7pt" text-align="left" line-height="1.15">
+                                        <fo:inline font-size="5pt" vertical-align="super"><xsl:value-of select="position()"/></fo:inline>
+                                        <xsl:text> </xsl:text>
+                                        <xsl:value-of select="string(key('kLabels', string($descKey), $labels))"/>
+                                    </fo:block>
+                                </xsl:for-each>
+                            </fo:block>
+                        </xsl:if>
+                    </xsl:if>
+
+                    <!-- Podmiot upoważniony -->
+                    <xsl:if test="crd:PodmiotUpowazniony">
+                        <!-- Linia oddzielająca -->
+                        <fo:block border-bottom="solid 1px grey" space-before="5mm"/>
+
+                        <xsl:apply-templates select="crd:PodmiotUpowazniony"/>
                     </xsl:if>
 
                     <!-- Linia oddzielająca -->
@@ -838,17 +793,22 @@
                                     </xsl:if>
                                     <xsl:if test="crd:Fa/crd:P_6">
                                         <fo:block font-size="8pt" text-align="left">
-                                            <xsl:choose>
-                                                <xsl:when test="crd:Fa/crd:RodzajFaktury = 'ZAL'">
-                                                    <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'paymentReceivedDate', $labels)"/>:
-                                                    </fo:inline>
-                                                </xsl:when>
-                                                <xsl:otherwise>
-<fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'deliveryDate', $labels)"/>:
-                                                    </fo:inline>
-                                                </xsl:otherwise>
-                                            </xsl:choose>
+                                            <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'deliveryDate', $labels)"/>:
+                                            </fo:inline>
                                             <xsl:value-of select="crd:Fa/crd:P_6"/>
+                                        </fo:block>
+                                    </xsl:if>
+                                    <xsl:if test="crd:Fa/crd:OkresFa">
+                                        <fo:block font-size="8pt" text-align="left">
+                                            <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'deliveryDate', $labels)"/>:
+                                            </fo:inline>
+                                            <xsl:value-of select="key('kLabels', 'dateRange.from', $labels)"/>
+                                            <xsl:text> </xsl:text>
+                                            <xsl:value-of select="crd:Fa/crd:OkresFa/crd:P_6_Od"/>
+                                            <xsl:text> </xsl:text>
+                                            <xsl:value-of select="key('kLabels', 'dateRange.to', $labels)"/>
+                                            <xsl:text> </xsl:text>
+                                            <xsl:value-of select="crd:Fa/crd:OkresFa/crd:P_6_Do"/>
                                         </fo:block>
                                     </xsl:if>
                                     <xsl:if test="crd:Fa/crd:PrzyczynaKorekty">
@@ -918,6 +878,11 @@
                             </fo:table-row>
                         </fo:table-body>
                     </fo:table>
+                    <xsl:if test="crd:Fa/crd:P_1">
+                        <fo:block font-size="7pt" text-align="left" space-before="2mm">
+                            <xsl:value-of select="key('kLabels', 'issueDate.footnote', $labels)"/>
+                        </fo:block>
+                    </xsl:if>
 
                     <!-- Numery wcześniejszych faktur zaliczkowych -->
                     <xsl:if test="count(crd:Fa/crd:FakturaZaliczkowa/crd:NrKSeFFaZaliczkowej) > 0 or count(crd:Fa/crd:FakturaZaliczkowa/crd:NrFaZaliczkowej) > 0">
@@ -983,15 +948,17 @@
                             </xsl:if>
                         </xsl:if>
 
+                        <!-- Section title: omitted for ZAL/KOR_ZAL (each subsection has its own title below) -->
+                        <xsl:if test="not(local:norm(crd:Fa/crd:RodzajFaktury) = 'ZAL') and not(local:norm(crd:Fa/crd:RodzajFaktury) = 'KOR_ZAL')">
                         <fo:block text-align="left" space-after="2mm">
                             <fo:inline font-weight="bold" font-size="12pt">
                                 <xsl:choose>
-                                    <xsl:when test="crd:Fa/crd:RodzajFaktury = 'ZAL'"><xsl:value-of select="key('kLabels', 'order', $labels)"/></xsl:when>
                                     <xsl:when test="crd:Fa/crd:OkresFaKorygowanej"><xsl:value-of select="key('kLabels', 'discount', $labels)"/></xsl:when>
                                     <xsl:otherwise><xsl:value-of select="key('kLabels', 'positions', $labels)"/></xsl:otherwise>
                                 </xsl:choose>
                             </fo:inline>
                         </fo:block>
+                        </xsl:if>
                         <xsl:if test="crd:Fa/crd:OkresFaKorygowanej">
 <!--                            <fo:block border-bottom="solid 1px grey" space-after="4mm" space-before="4mm"/>-->
 <!--                            <fo:block text-align="left" space-after="2mm">-->
@@ -1060,10 +1027,36 @@
                             </xsl:when>
                             <xsl:otherwise>
                                 <xsl:choose>
-                                    <xsl:when test="crd:Fa/crd:RodzajFaktury = 'ZAL' or crd:Fa/crd:RodzajFaktury = 'KOR_ZAL'">
-                                        <xsl:call-template name="zamowienieTable">
-                                            <xsl:with-param name="zamowienieWiersz" select="crd:Fa/crd:Zamowienie/crd:ZamowienieWiersz"/>
-                                        </xsl:call-template>
+                                    <xsl:when test="local:norm(crd:Fa/crd:RodzajFaktury) = 'ZAL' or local:norm(crd:Fa/crd:RodzajFaktury) = 'KOR_ZAL'">
+                                        <!-- ZAL can have both Zamówienie and FaWiersz: show both sections in order: Pozycje first, then Zamówienie -->
+                                        <xsl:if test="crd:Fa/crd:FaWiersz">
+                                            <fo:block text-align="left" space-after="2mm" space-before="2mm">
+                                                <fo:inline font-weight="bold" font-size="12pt"><xsl:value-of select="key('kLabels', 'positions', $labels)"/></fo:inline>
+                                            </fo:block>
+                                            <xsl:call-template name="positionsTable">
+                                                <xsl:with-param name="faWiersz" select="crd:Fa/crd:FaWiersz"/>
+                                            </xsl:call-template>
+                                        </xsl:if>
+                                        <xsl:if test="crd:Fa/crd:Zamowienie/crd:ZamowienieWiersz or crd:Fa/crd:Zamowienie/crd:WartoscZamowienia">
+                                            <fo:block text-align="left" space-after="2mm" space-before="2mm">
+                                                <fo:inline font-weight="bold" font-size="12pt"><xsl:value-of select="key('kLabels', 'order', $labels)"/></fo:inline>
+                                            </fo:block>
+                                            <xsl:if test="crd:Fa/crd:Zamowienie/crd:WartoscZamowienia">
+                                                <fo:block font-size="8pt" font-weight="bold" text-align="left" space-before="1mm" space-after="3mm">
+                                                    <fo:inline><xsl:value-of select="key('kLabels', 'orderValueWithTax', $labels)"/>: </fo:inline>
+                                                    <fo:inline>
+                                                        <xsl:value-of select="local:format-amount(crd:Fa/crd:Zamowienie/crd:WartoscZamowienia)"/>
+                                                        <xsl:text> </xsl:text>
+                                                        <xsl:value-of select="crd:Fa/crd:KodWaluty"/>
+                                                    </fo:inline>
+                                                </fo:block>
+                                            </xsl:if>
+                                            <xsl:if test="crd:Fa/crd:Zamowienie/crd:ZamowienieWiersz">
+                                                <xsl:call-template name="zamowienieTable">
+                                                    <xsl:with-param name="zamowienieWiersz" select="crd:Fa/crd:Zamowienie/crd:ZamowienieWiersz"/>
+                                                </xsl:call-template>
+                                            </xsl:if>
+                                        </xsl:if>
                                     </xsl:when>
                                     <xsl:otherwise>
                                         <!-- Show positions table only if there are invoice lines -->
@@ -1084,13 +1077,13 @@
                         <!-- Kwota należności ogółem -->
 
                         <!-- Conditional block for displaying correction amounts only when RodzajFaktury = 'KOR' -->
-                        <xsl:if test="crd:Fa/crd:RodzajFaktury = 'KOR'">
+                        <xsl:if test="local:norm(crd:Fa/crd:RodzajFaktury) = 'KOR'">
                             <!-- Optional block for Kwota brutto przed korektą -->
                             <xsl:if test="boolean(sum(crd:Fa/crd:FaWiersz[crd:StanPrzed = 1]/crd:P_11A))">
                                 <fo:block color="#6c757d" font-size="8pt" text-align="right" space-before="2mm">
                                     <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'grossAmountBeforeCorrection', $labels)"/>: </fo:inline>
                                     <fo:inline>
-                                        <xsl:value-of select="translate(format-number(sum(crd:Fa/crd:FaWiersz[crd:StanPrzed = 1]/crd:P_11A), '#,##0.00'), ',.', ' ,')"/>
+                                        <xsl:value-of select="local:format-amount(sum(crd:Fa/crd:FaWiersz[crd:StanPrzed = 1]/crd:P_11A))"/>
                                         <xsl:text> </xsl:text>
                                         <fo:inline>
                                             <xsl:value-of select="crd:Fa/crd:KodWaluty"/>
@@ -1104,7 +1097,7 @@
                                 <fo:block color="#6c757d" font-size="8pt" text-align="right">
                                     <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'grossAmountAfterCorrection', $labels)"/>: </fo:inline>
                                     <fo:inline>
-                                        <xsl:value-of select="translate(format-number(sum(crd:Fa/crd:FaWiersz[not(crd:StanPrzed)]/crd:P_11A), '#,##0.00'), ',.', ' ,')"/>
+                                        <xsl:value-of select="local:format-amount(sum(crd:Fa/crd:FaWiersz[not(crd:StanPrzed)]/crd:P_11A))"/>
                                         <xsl:text> </xsl:text>
                                         <fo:inline>
                                             <xsl:value-of select="crd:Fa/crd:KodWaluty"/>
@@ -1114,11 +1107,11 @@
                             </xsl:if>
                         </xsl:if>
                         <xsl:choose>
-                            <xsl:when test="crd:Fa/crd:RodzajFaktury = 'ZAL'">
+                            <xsl:when test="local:norm(crd:Fa/crd:RodzajFaktury) = 'ZAL'">
                                 <fo:block color="#343a40" font-size="10pt" text-align="right" space-before="3mm">
                                     <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'advancePaymentReceived', $labels)"/>: </fo:inline>
                                     <fo:inline>
-                                        <xsl:value-of select="translate(format-number(number(crd:Fa/crd:P_15), '#,##0.00'), ',.', ' ,')"/>
+                                        <xsl:value-of select="local:format-amount(crd:Fa/crd:P_15)"/>
                                         <xsl:text> </xsl:text>
                                         <fo:inline>
                                             <xsl:value-of select="crd:Fa/crd:KodWaluty"/>
@@ -1126,11 +1119,11 @@
                                     </fo:inline>
                                 </fo:block>
                             </xsl:when>
-                            <xsl:when test="crd:Fa/crd:RodzajFaktury = 'ROZ'">
+                            <xsl:when test="local:norm(crd:Fa/crd:RodzajFaktury) = 'ROZ'">
                                 <fo:block color="#343a40" font-size="10pt" text-align="right" space-before="3mm">
                                     <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'amountRemaining', $labels)"/>: </fo:inline>
                                     <fo:inline>
-                                        <xsl:value-of select="translate(format-number(number(crd:Fa/crd:P_15), '#,##0.00'), ',.', ' ,')"/>
+                                        <xsl:value-of select="local:format-amount(crd:Fa/crd:P_15)"/>
                                         <xsl:text> </xsl:text>
                                         <fo:inline>
                                             <xsl:value-of select="crd:Fa/crd:KodWaluty"/>
@@ -1142,7 +1135,7 @@
                                 <fo:block color="#343a40" font-size="10pt" text-align="right" space-before="3mm">
                                     <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'totalDiscount', $labels)"/>: </fo:inline>
                                     <fo:inline>
-                                        <xsl:value-of select="translate(format-number(abs(number(crd:Fa/crd:P_15)), '#,##0.00'), ',.', ' ,')"/>
+                                        <xsl:value-of select="local:format-amount(crd:Fa/crd:P_15)"/>
                                         <xsl:text> </xsl:text>
                                         <fo:inline>
                                             <xsl:value-of select="crd:Fa/crd:KodWaluty"/>
@@ -1154,7 +1147,7 @@
                                 <fo:block color="#343a40" font-size="10pt" text-align="right" space-before="3mm">
                                     <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'totalAmount', $labels)"/>: </fo:inline>
                                     <fo:inline>
-                                        <xsl:value-of select="translate(format-number(number(crd:Fa/crd:P_15), '#,##0.00'), ',.', ' ,')"/>
+                                        <xsl:value-of select="local:format-amount(crd:Fa/crd:P_15)"/>
                                         <xsl:text> </xsl:text>
                                         <fo:inline>
                                             <xsl:value-of select="crd:Fa/crd:KodWaluty"/>
@@ -1167,15 +1160,18 @@
 
 
                     <!-- Podsumowanie stawek podatku-->
-                    <xsl:variable name="hasAnyTaxRates" select="crd:Fa/crd:P_13_1 != 0 or crd:Fa/crd:P_14_1 != 0 or
+                    <xsl:variable name="hasAnyTaxRates" select="crd:Fa/crd:P_13_1 != 0   or crd:Fa/crd:P_14_1 != 0 or
                                                                crd:Fa/crd:P_13_2 != 0 or crd:Fa/crd:P_14_2 != 0 or
                                                                crd:Fa/crd:P_13_3 != 0 or crd:Fa/crd:P_14_3 != 0 or
                                                                crd:Fa/crd:P_13_4 != 0 or crd:Fa/crd:P_14_4 != 0 or
                                                                crd:Fa/crd:P_13_5 != 0 or crd:Fa/crd:P_14_5 != 0 or
                                                                crd:Fa/crd:P_13_6_1 != 0 or crd:Fa/crd:P_13_6_2 != 0 or
+                                                               crd:Fa/crd:P_13_6_3 != 0 or
                                                                crd:Fa/crd:P_13_7 != 0 or crd:Fa/crd:P_13_8 != 0 or
                                                                crd:Fa/crd:P_13_9 != 0 or crd:Fa/crd:P_13_10 != 0 or
-                                                               crd:Fa/crd:P_13_11 != 0"/>
+                                                               crd:Fa/crd:P_13_11 != 0 or crd:Fa/crd:P_14_1W != 0 or
+                                                               crd:Fa/crd:P_14_2W != 0 or crd:Fa/crd:P_14_3W != 0 or
+                                                               crd:Fa/crd:P_14_4W != 0"/>
 
                     <xsl:if test="$hasAnyTaxRates">
                         <!-- Linia oddzielająca -->
@@ -1184,8 +1180,9 @@
                         <fo:block font-size="12pt" text-align="left" space-after="2mm">
                             <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'taxRateSummary', $labels)"/></fo:inline>
                         </fo:block>
-                        <xsl:variable name="hasTaxAmountPln" select="crd:Fa/crd:P_14_1W | crd:Fa/crd:P_14_2W | crd:Fa/crd:P_14_3W | crd:Fa/crd:P_14_4W"/>
-                        <fo:table table-layout="fixed" width="100%" border-collapse="separate">
+                        <!-- Non-zero PLN tax amounts only (do not use union of nodes — presence of 0-valued elements would wrongly enable the column) -->
+                        <xsl:variable name="hasTaxAmountPln" select="crd:Fa/crd:P_14_1W != 0 or crd:Fa/crd:P_14_2W != 0 or crd:Fa/crd:P_14_3W != 0 or crd:Fa/crd:P_14_4W != 0"/>
+                        <fo:table id="tax_summary" table-layout="fixed" width="100%" border-collapse="separate">
                             <xsl:choose>
                                 <xsl:when test="$hasTaxAmountPln">
                                     <fo:table-column column-width="20%"/> <!-- Stawka podatku -->
@@ -1235,9 +1232,12 @@
                                                                            crd:Fa/crd:P_13_4 != 0 or crd:Fa/crd:P_14_4 != 0 or
                                                                            crd:Fa/crd:P_13_5 != 0 or crd:Fa/crd:P_14_5 != 0 or
                                                                            crd:Fa/crd:P_13_6_1 != 0 or crd:Fa/crd:P_13_6_2 != 0 or
-                                                                           crd:Fa/crd:P_13_7 != 0 or crd:Fa/crd:P_13_8 != 0 or
+                                                                           crd:Fa/crd:P_13_6_3 != 0 or crd:Fa/crd:P_13_7 != 0 or
+                                                                           crd:Fa/crd:P_13_8 != 0 or
                                                                            crd:Fa/crd:P_13_9 != 0 or crd:Fa/crd:P_13_10 != 0 or
-                                                                           crd:Fa/crd:P_13_11 != 0"/>
+                                                                           crd:Fa/crd:P_13_11 != 0 or crd:Fa/crd:P_14_1W != 0 or
+                                                                           crd:Fa/crd:P_14_2W != 0 or crd:Fa/crd:P_14_3W != 0 or
+                                                                           crd:Fa/crd:P_14_4W != 0"/>
 
                                 <!-- Jeśli nie ma żadnych stawek podatku, wyświetl informację -->
                                 <xsl:if test="not($hasAnyTaxRates)">
@@ -1248,7 +1248,8 @@
                                     </fo:table-row>
                                 </xsl:if>
 
-                                <xsl:if test="crd:Fa/crd:P_13_1 | crd:Fa/crd:P_14_1 and crd:Fa/crd:P_13_1 != 0">
+                                <!-- Show row only when net, tax or PLN tax in this bracket is non-zero (not union of nodes — 0 amounts must not show a row) -->
+                                <xsl:if test="crd:Fa/crd:P_13_1 != 0 or crd:Fa/crd:P_14_1 != 0 or crd:Fa/crd:P_14_1W != 0">
                                     <fo:table-row>
                                         <fo:table-cell
                                                 xsl:use-attribute-sets="tableFont tableBorder table.cell.padding">
@@ -1260,35 +1261,35 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_1), '#,##0.00'), ',.', ' ,')"/>  <!-- Kwota netto -->
+                                                        select="local:format-amount(crd:Fa/crd:P_13_1)"/>  <!-- Kwota netto -->
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_14_1), '#,##0.00'), ',.', ' ,')"/>  <!-- Kwota podatku -->
+                                                        select="local:format-amount(crd:Fa/crd:P_14_1)"/>  <!-- Kwota podatku -->
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_1) + number(crd:Fa/crd:P_14_1), '#,##0.00'), ',.', ' ,')"/>  <!-- Kwota brutto -->
+                                                        select="local:format-amount(number(crd:Fa/crd:P_13_1) + number(crd:Fa/crd:P_14_1))"/>  <!-- Kwota brutto -->
                                             </fo:block>
                                         </fo:table-cell>
-                                        <xsl:if test="crd:Fa/crd:P_14_1W">
+                                        <xsl:if test="crd:Fa/crd:P_14_1W != 0">
                                             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                            text-align="right">
                                                 <fo:block>
                                                     <xsl:value-of
-                                                            select="translate(format-number(number(crd:Fa/crd:P_14_1W), '#,##0.00'), ',.', ' ,')"/>  <!-- Kwota podatku PLN -->
+                                                            select="local:format-amount(crd:Fa/crd:P_14_1W)"/>  <!-- Kwota podatku PLN -->
                                                 </fo:block>
                                             </fo:table-cell>
                                         </xsl:if>
                                     </fo:table-row>
                                 </xsl:if>
-                                <xsl:if test="crd:Fa/crd:P_13_2 | crd:Fa/crd:P_14_2  and crd:Fa/crd:P_13_2 != 0">
+                                <xsl:if test="crd:Fa/crd:P_13_2 != 0 or crd:Fa/crd:P_14_2 != 0 or crd:Fa/crd:P_14_2W != 0">
                                     <fo:table-row>
                                         <fo:table-cell
                                                 xsl:use-attribute-sets="tableFont tableBorder table.cell.padding">
@@ -1300,35 +1301,35 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_2), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_2)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_14_2), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_14_2)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_2) + number(crd:Fa/crd:P_14_2), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(number(crd:Fa/crd:P_13_2) + number(crd:Fa/crd:P_14_2))"/>
                                             </fo:block>
                                         </fo:table-cell>
-                                        <xsl:if test="crd:Fa/crd:P_14_2W">
+                                        <xsl:if test="crd:Fa/crd:P_14_2W != 0">
                                             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                            text-align="right">
                                                 <fo:block>
                                                     <xsl:value-of
-                                                            select="translate(format-number(number(crd:Fa/crd:P_14_2W), '#,##0.00'), ',.', ' ,')"/>  <!-- Kwota podatku PLN -->
+                                                            select="local:format-amount(crd:Fa/crd:P_14_2W)"/>  <!-- Kwota podatku PLN -->
                                                 </fo:block>
                                             </fo:table-cell>
                                         </xsl:if>
                                     </fo:table-row>
                                 </xsl:if>
-                                <xsl:if test="crd:Fa/crd:P_13_3 | crd:Fa/crd:P_14_3  and crd:Fa/crd:P_13_3 != 0">
+                                <xsl:if test="crd:Fa/crd:P_13_3 != 0 or crd:Fa/crd:P_14_3 != 0 or crd:Fa/crd:P_14_3W != 0">
                                     <fo:table-row>
                                         <fo:table-cell
                                                 xsl:use-attribute-sets="tableFont tableBorder table.cell.padding">
@@ -1340,35 +1341,35 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_3), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_3)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_14_3), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_14_3)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_3) + number(crd:Fa/crd:P_14_3), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(number(crd:Fa/crd:P_13_3) + number(crd:Fa/crd:P_14_3))"/>
                                             </fo:block>
                                         </fo:table-cell>
-                                        <xsl:if test="crd:Fa/crd:P_14_3W">
+                                        <xsl:if test="crd:Fa/crd:P_14_3W != 0">
                                             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                            text-align="right">
                                                 <fo:block>
                                                     <xsl:value-of
-                                                            select="translate(format-number(number(crd:Fa/crd:P_14_3W), '#,##0.00'), ',.', ' ,')"/>  <!-- Kwota podatku PLN -->
+                                                            select="local:format-amount(crd:Fa/crd:P_14_3W)"/>  <!-- Kwota podatku PLN -->
                                                 </fo:block>
                                             </fo:table-cell>
                                         </xsl:if>
                                     </fo:table-row>
                                 </xsl:if>
-                                <xsl:if test="crd:Fa/crd:P_13_4 | crd:Fa/crd:P_14_4  and crd:Fa/crd:P_13_4 != 0">
+                                <xsl:if test="crd:Fa/crd:P_13_4 != 0 or crd:Fa/crd:P_14_4 != 0 or crd:Fa/crd:P_14_4W != 0">
                                     <fo:table-row>
                                         <fo:table-cell
                                                 xsl:use-attribute-sets="tableFont tableBorder table.cell.padding">
@@ -1380,35 +1381,35 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_4), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_4)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_14_4), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_14_4)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_4) + number(crd:Fa/crd:P_14_4), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(number(crd:Fa/crd:P_13_4) + number(crd:Fa/crd:P_14_4))"/>
                                             </fo:block>
                                         </fo:table-cell>
-                                        <xsl:if test="crd:Fa/crd:P_14_4W">
+                                        <xsl:if test="crd:Fa/crd:P_14_4W != 0">
                                             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                            text-align="right">
                                                 <fo:block>
                                                     <xsl:value-of
-                                                            select="translate(format-number(number(crd:Fa/crd:P_14_4W), '#,##0.00'), ',.', ' ,')"/>  <!-- Kwota podatku PLN -->
+                                                            select="local:format-amount(crd:Fa/crd:P_14_4W)"/>  <!-- Kwota podatku PLN -->
                                                 </fo:block>
                                             </fo:table-cell>
                                         </xsl:if>
                                     </fo:table-row>
                                 </xsl:if>
-                                <xsl:if test="crd:Fa/crd:P_13_5 | crd:Fa/crd:P_14_5  and crd:Fa/crd:P_13_5 != 0">
+                                <xsl:if test="crd:Fa/crd:P_13_5 != 0 or crd:Fa/crd:P_14_5 != 0">
                                     <fo:table-row>
                                         <fo:table-cell
                                                 xsl:use-attribute-sets="tableFont tableBorder table.cell.padding">
@@ -1420,21 +1421,21 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_5), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_5)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_14_5), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_14_5)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_5) + number(crd:Fa/crd:P_14_5), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(number(crd:Fa/crd:P_13_5) + number(crd:Fa/crd:P_14_5))"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <xsl:if test="$hasTaxAmountPln">
@@ -1459,21 +1460,21 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_6_1), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_6_1)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(0)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_6_1) + 0, '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_6_1)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <xsl:if test="$hasTaxAmountPln">
@@ -1481,7 +1482,7 @@
                                                            text-align="right">
                                                 <fo:block>
                                                     <xsl:value-of
-                                                            select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                            select="local:format-amount(0)"/>
                                                 </fo:block>
                                             </fo:table-cell>
                                         </xsl:if>
@@ -1499,21 +1500,21 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_6_2), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_6_2)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(0)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_6_2) + 0, '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_6_2)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <xsl:if test="$hasTaxAmountPln">
@@ -1521,7 +1522,7 @@
                                                            text-align="right">
                                                 <fo:block>
                                                     <xsl:value-of
-                                                            select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                            select="local:format-amount(0)"/>
                                                 </fo:block>
                                             </fo:table-cell>
                                         </xsl:if>
@@ -1539,21 +1540,21 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_6_3), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_6_3)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(0)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_6_3) + 0, '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_6_3)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <xsl:if test="$hasTaxAmountPln">
@@ -1561,7 +1562,7 @@
                                                            text-align="right">
                                                 <fo:block>
                                                     <xsl:value-of
-                                                            select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                            select="local:format-amount(0)"/>
                                                 </fo:block>
                                             </fo:table-cell>
                                         </xsl:if>
@@ -1579,21 +1580,21 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_7), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_7)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(0)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_7) + 0, '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_7)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <xsl:if test="$hasTaxAmountPln">
@@ -1601,7 +1602,7 @@
                                                            text-align="right">
                                                 <fo:block>
                                                     <xsl:value-of
-                                                            select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                            select="local:format-amount(0)"/>
                                                 </fo:block>
                                             </fo:table-cell>
                                         </xsl:if>
@@ -1619,21 +1620,21 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_8), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_8)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(0)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_8) + 0, '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_8)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <xsl:if test="$hasTaxAmountPln">
@@ -1641,7 +1642,7 @@
                                                            text-align="right">
                                                 <fo:block>
                                                     <xsl:value-of
-                                                            select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                            select="local:format-amount(0)"/>
                                                 </fo:block>
                                             </fo:table-cell>
                                         </xsl:if>
@@ -1659,21 +1660,21 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_9), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_9)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(0)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_9) + 0, '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_9)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <xsl:if test="$hasTaxAmountPln">
@@ -1681,7 +1682,7 @@
                                                            text-align="right">
                                                 <fo:block>
                                                     <xsl:value-of
-                                                            select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                            select="local:format-amount(0)"/>
                                                 </fo:block>
                                             </fo:table-cell>
                                         </xsl:if>
@@ -1699,21 +1700,21 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_10), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_10)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(0)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_10) + 0, '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_10)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <xsl:if test="$hasTaxAmountPln">
@@ -1721,7 +1722,7 @@
                                                            text-align="right">
                                                 <fo:block>
                                                     <xsl:value-of
-                                                            select="translate(format-number(number(0), '#,##0.00'), ',.', ' ,')"/>
+                                                            select="local:format-amount(0)"/>
                                                 </fo:block>
                                             </fo:table-cell>
                                         </xsl:if>
@@ -1739,7 +1740,7 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_11), '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_11)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding"
@@ -1752,7 +1753,7 @@
                                                        text-align="right">
                                             <fo:block>
                                                 <xsl:value-of
-                                                        select="translate(format-number(number(crd:Fa/crd:P_13_11) + 0, '#,##0.00'), ',.', ' ,')"/>
+                                                        select="local:format-amount(crd:Fa/crd:P_13_11)"/>
                                             </fo:block>
                                         </fo:table-cell>
                                         <xsl:if test="$hasTaxAmountPln">
@@ -1768,61 +1769,14 @@
                         </fo:table>
                     </xsl:if>
 
-                    <xsl:if test="crd:Fa/crd:Adnotacje/crd:P_16 = 1 or crd:Fa/crd:Adnotacje/crd:P_17 = 1 or crd:Fa/crd:Adnotacje/crd:P_18 = 1 or crd:Fa/crd:Adnotacje/crd:P_18A = 1">
-
-                        <!-- Adnotacje -->
-                        <fo:block border-bottom="solid 1px grey" space-after="4mm" space-before="4mm"/>
-
-                        <fo:block font-size="12pt" text-align="left" space-after="5mm">
-                            <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'annotations', $labels)"/></fo:inline>
-                        </fo:block>
-
-                        <fo:table table-layout="fixed" width="100%" space-after="2mm">
-                            <fo:table-column column-width="50%"/>
-                            <fo:table-column column-width="50%"/>
-                            <fo:table-body>
-                                <fo:table-row>
-                                    <fo:table-cell padding-right="5mm">
-                                        <fo:block font-size="7pt" text-align="left">
-                                            <xsl:if test="crd:Fa/crd:Adnotacje/crd:P_16 = 1">
-                                                <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'cashMethod', $labels)"/></fo:inline>
-                                            </xsl:if>
-                                        </fo:block>
-                                    </fo:table-cell>
-                                    <fo:table-cell padding-left="5mm">
-                                        <fo:block font-size="7pt" text-align="left">
-                                            <xsl:if test="crd:Fa/crd:Adnotacje/crd:P_17 = 1">
-                                                <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'selfBilling', $labels)"/></fo:inline>
-                                            </xsl:if>
-                                        </fo:block>
-                                    </fo:table-cell>
-                                </fo:table-row>
-                                <fo:table-row>
-                                    <fo:table-cell padding-right="5mm">
-                                        <fo:block font-size="7pt" text-align="left">
-                                            <xsl:if test="crd:Fa/crd:Adnotacje/crd:P_18 = 1">
-                                                <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'reverseCharge', $labels)"/></fo:inline>
-                                            </xsl:if>
-                                        </fo:block>
-                                    </fo:table-cell>
-                                    <fo:table-cell padding-left="5mm">
-                                        <fo:block font-size="7pt" text-align="left">
-                                            <xsl:if test="crd:Fa/crd:Adnotacje/crd:P_18A = 1">
-                                                <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'splitPayment', $labels)"/></fo:inline>
-                                            </xsl:if>
-                                        </fo:block>
-                                    </fo:table-cell>
-                                </fo:table-row>
-                            </fo:table-body>
-                        </fo:table>
-
-                    </xsl:if>
+                    <!-- Adnotacje -->
+                    <xsl:apply-templates select="crd:Fa/crd:Adnotacje"/>
 
                     <!-- Dodatkowy opis-->
                     <xsl:if test="count(crd:Fa/crd:DodatkowyOpis) > 0">
                         <!-- Linia oddzielająca -->
                         <fo:block border-bottom="solid 1px grey" space-after="4mm" space-before="4mm"/>
-                        
+
                         <fo:block>
                             <fo:block text-align="left" space-after="2mm">
                                 <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'additionalDescription', $labels)"/></fo:inline>
@@ -1871,6 +1825,9 @@
                             </fo:table>
                         </fo:block>
                     </xsl:if>
+
+                    <!-- Rozliczenie -->
+                    <xsl:apply-templates select="crd:Fa/crd:Rozliczenie"/>
 
                     <!-- Płatność -->
                     <xsl:if test="crd:Fa/crd:Platnosc and (
@@ -1960,7 +1917,11 @@
                         <xsl:if test="crd:Fa/crd:Platnosc/crd:TerminPlatnosci/crd:TerminOpis">
                             <fo:block font-size="7pt" text-align="left" space-after="1mm">
                                 <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'paymentDescription', $labels)"/>: </fo:inline>
-                                <xsl:value-of select="crd:Fa/crd:Platnosc/crd:TerminPlatnosci/crd:TerminOpis"/>
+                                <xsl:value-of select="crd:Fa/crd:Platnosc/crd:TerminPlatnosci/crd:TerminOpis/crd:Ilosc"/>
+                                <xsl:text> </xsl:text>
+                                <xsl:value-of select="crd:Fa/crd:Platnosc/crd:TerminPlatnosci/crd:TerminOpis/crd:Jednostka"/>
+                                <xsl:text> </xsl:text>
+                                <xsl:value-of select="crd:Fa/crd:Platnosc/crd:TerminPlatnosci/crd:TerminOpis/crd:ZdarzeniePoczatkowe"/>
                             </fo:block>
                         </xsl:if>
 
@@ -1994,7 +1955,7 @@
                                                 </fo:table-cell>
                                                 <fo:table-cell xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
                                                     <fo:block font-size="7pt" text-align="right">
-                                                        <xsl:value-of select="translate(format-number(number(crd:KwotaZaplatyCzesciowej), '#,##0.00'), ',.', ' ,')"/>
+                                                        <xsl:value-of select="local:format-amount(crd:KwotaZaplatyCzesciowej)"/>
                                                     </fo:block>
                                                 </fo:table-cell>
                                             </fo:table-row>
@@ -2037,6 +1998,54 @@
                                                     <fo:block font-size="7pt" space-after="5mm">
                                                         <xsl:call-template name="renderBankAccountTable">
                                                             <xsl:with-param name="bankAccountNode" select="following-sibling::crd:RachunekBankowy[1]"/>
+                                                        </xsl:call-template>
+                                                    </fo:block>
+                                                </fo:table-cell>
+                                            </xsl:when>
+                                            <!-- Jeśli nie ma następnego elementu, wstawiamy pustą komórkę -->
+                                            <xsl:otherwise>
+                                                <fo:table-cell>
+                                                    <fo:block/>
+                                                </fo:table-cell>
+                                            </xsl:otherwise>
+                                        </xsl:choose>
+                                    </fo:table-row>
+                                </xsl:for-each>
+                            </fo:table-body>
+                        </fo:table>
+                    </xsl:if>
+                    <xsl:if test="count(crd:Fa/crd:Platnosc/crd:RachunekBankowyFaktora) > 0">
+                        <!-- Blok tytułu -->
+                        <fo:block border-bottom="solid 1px grey" space-after="4mm" space-before="4mm"/>
+                        <fo:block font-size="12pt" text-align="left">
+                            <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'bankAccountNumberFactor', $labels)"/></fo:inline>
+                        </fo:block>
+
+                        <!-- Tabela z rachunkami bankowymi faktora -->
+                        <fo:table table-layout="fixed" width="100%">
+                            <fo:table-column column-width="50%"/>
+                            <fo:table-column column-width="50%"/>
+
+                            <fo:table-body>
+                                <!-- Iterujemy przez wszystkie elementy RachunekBankowyFaktora, zaczynając od pierwszego -->
+                                <xsl:for-each select="crd:Fa/crd:Platnosc/crd:RachunekBankowyFaktora[position() mod 2 = 1]">
+                                    <fo:table-row>
+                                        <!-- Pierwsza komórka w wierszu -->
+                                        <fo:table-cell>
+                                            <fo:block font-size="7pt" space-after="5mm">
+                                                <xsl:call-template name="renderBankAccountTable">
+                                                    <xsl:with-param name="bankAccountNode" select="."/>
+                                                </xsl:call-template>
+                                            </fo:block>
+                                        </fo:table-cell>
+
+                                        <!-- Druga komórka, jeśli istnieje następny element -->
+                                        <xsl:choose>
+                                            <xsl:when test="following-sibling::crd:RachunekBankowyFaktora[1]">
+                                                <fo:table-cell padding-left="6pt">
+                                                    <fo:block font-size="7pt" space-after="5mm">
+                                                        <xsl:call-template name="renderBankAccountTable">
+                                                            <xsl:with-param name="bankAccountNode" select="following-sibling::crd:RachunekBankowyFaktora[1]"/>
                                                         </xsl:call-template>
                                                     </fo:block>
                                                 </fo:table-cell>
@@ -2463,9 +2472,7 @@
                         <fo:table-cell>
                             <fo:block text-align="left" padding-bottom="3px">
                                 <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'vatUe.prefix', $labels)"/>: </fo:inline>
-                                <xsl:call-template name="mapKodKrajuToNazwa">
-                                    <xsl:with-param name="kodKraju" select="crd:PrefiksPodatnika"/>
-                                </xsl:call-template>
+                                <xsl:value-of select="crd:PrefiksPodatnika"/>
                             </fo:block>
                         </fo:table-cell>
                     </fo:table-row>
@@ -2488,27 +2495,8 @@
                         </fo:block>
                     </fo:table-cell>
                 </fo:table-row>
-                <fo:table-row>
-                    <fo:table-cell padding-top="16px">
-                        <fo:block text-align="left" padding-bottom="3px">
-                            <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'address', $labels)"/></fo:inline>
-                        </fo:block>
-                        <fo:block text-align="left">
-                            <xsl:value-of select="crd:Adres/crd:AdresL1"/>
-                            <xsl:if test="crd:Adres/crd:AdresL2">
-                                <fo:inline>, </fo:inline>
-                                <xsl:value-of select="crd:Adres/crd:AdresL2"/>
-                            </xsl:if>
-                            <xsl:if test="crd:Adres/crd:KodKraju">
-                                <fo:block>
-                                    <xsl:call-template name="mapKodKrajuToNazwa">
-                                        <xsl:with-param name="kodKraju" select="crd:Adres/crd:KodKraju"/>
-                                    </xsl:call-template>
-                                </fo:block>
-                            </xsl:if>
-                        </fo:block>
-                    </fo:table-cell>
-                </fo:table-row>
+                <xsl:apply-templates select="crd:Adres" mode="table-row"/>
+                <xsl:apply-templates select="crd:AdresKoresp" mode="table-row"/>
                 <xsl:if test="crd:DaneKontaktowe/crd:Email|crd:DaneKontaktowe/crd:Telefon">
                     <fo:table-row>
                         <fo:table-cell padding-top="16px">
@@ -2537,6 +2525,7 @@
     </xsl:template>
 
     <xsl:template match="crd:Podmiot2">
+        <xsl:variable name="id" select="crd:DaneIdentyfikacyjne"/>
         <fo:table font-size="7pt" table-layout="fixed" width="100%">
             <fo:table-body>
                 <xsl:if test="crd:NrEORI">
@@ -2550,74 +2539,55 @@
                         </fo:table-cell>
                     </fo:table-row>
                 </xsl:if>
-                <xsl:if test="crd:DaneIdentyfikacyjne/crd:NrVatUE">
+                <xsl:if test="$id/crd:NrVatUE">
                     <fo:table-row>
                         <fo:table-cell>
                             <fo:block text-align="left" padding-bottom="3px">
                                 <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'vatUe.number', $labels)"/>: </fo:inline>
-                                <xsl:value-of select="crd:DaneIdentyfikacyjne/crd:KodUE"/>
-                                <xsl:value-of select="crd:DaneIdentyfikacyjne/crd:NrVatUE"/>
+                                <xsl:value-of select="$id/crd:KodUE"/>
+                                <xsl:value-of select="$id/crd:NrVatUE"/>
                             </fo:block>
                         </fo:table-cell>
                     </fo:table-row>
                 </xsl:if>
-                <xsl:if test="crd:DaneIdentyfikacyjne/crd:NIP">
+                <xsl:if test="$id/crd:NIP">
                     <fo:table-row>
                         <fo:table-cell>
                             <fo:block text-align="left" padding-bottom="3px">
                                 <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'nip', $labels)"/>: </fo:inline>
-                                <xsl:value-of
-                                        select="crd:DaneIdentyfikacyjne/crd:NIP"/>
+                                <xsl:value-of select="$id/crd:NIP"/>
                             </fo:block>
                         </fo:table-cell>
                     </fo:table-row>
                 </xsl:if>
-                <xsl:if test="crd:DaneIdentyfikacyjne/crd:NrID">
+                <xsl:if test="$id/crd:NrID">
                     <fo:table-row>
                         <fo:table-cell>
                             <fo:block text-align="left" padding-bottom="3px">
                                 <fo:inline font-weight="600">
                                     <xsl:value-of select="key('kLabels', 'taxId', $labels)"/>:
                                 </fo:inline>
-                                <xsl:if test="crd:DaneIdentyfikacyjne/crd:KodKraju">
-                                    <xsl:value-of select="crd:DaneIdentyfikacyjne/crd:KodKraju"/>
+                                <xsl:if test="$id/crd:KodKraju">
+                                    <xsl:value-of select="$id/crd:KodKraju"/>
                                     <xsl:text> </xsl:text>
                                 </xsl:if>
-                                <xsl:value-of select="crd:DaneIdentyfikacyjne/crd:NrID"/>
+                                <xsl:value-of select="$id/crd:NrID"/>
                             </fo:block>
                         </fo:table-cell>
                     </fo:table-row>
                 </xsl:if>
-                <fo:table-row>
-                    <fo:table-cell>
-                        <fo:block text-align="left">
-                            <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'name', $labels)"/>: </fo:inline>
-                            <xsl:value-of
-                                    select="crd:DaneIdentyfikacyjne/crd:Nazwa"/>
-                        </fo:block>
-                    </fo:table-cell>
-                </fo:table-row>
-                <fo:table-row>
-                    <fo:table-cell padding-top="16px">
-                        <fo:block text-align="left" padding-bottom="3px">
-                            <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'address', $labels)"/></fo:inline>
-                        </fo:block>
-                        <fo:block text-align="left">
-                            <xsl:value-of select="crd:Adres/crd:AdresL1"/>
-                            <xsl:if test="crd:Adres/crd:AdresL2">
-                                <fo:inline>, </fo:inline>
-                                <xsl:value-of select="crd:Adres/crd:AdresL2"/>
-                            </xsl:if>
-                            <xsl:if test="crd:Adres/crd:KodKraju">
-                                <fo:block>
-                                    <xsl:call-template name="mapKodKrajuToNazwa">
-                                        <xsl:with-param name="kodKraju" select="crd:Adres/crd:KodKraju"/>
-                                    </xsl:call-template>
-                                </fo:block>
-                            </xsl:if>
-                        </fo:block>
-                    </fo:table-cell>
-                </fo:table-row>
+                <xsl:if test="$id/crd:Nazwa">
+                    <fo:table-row>
+                        <fo:table-cell>
+                            <fo:block text-align="left">
+                                <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'name', $labels)"/>: </fo:inline>
+                                <xsl:value-of select="$id/crd:Nazwa"/>
+                            </fo:block>
+                        </fo:table-cell>
+                    </fo:table-row>
+                </xsl:if>
+                <xsl:apply-templates select="crd:Adres" mode="table-row"/>
+                <xsl:apply-templates select="crd:AdresKoresp" mode="table-row"/>
                 <xsl:if test="crd:DaneKontaktowe/crd:Email|crd:DaneKontaktowe/crd:Telefon|crd:NrKlienta|crd:IDNabywcy">
                     <fo:table-row>
                         <fo:table-cell padding-top="16px">
@@ -2657,43 +2627,101 @@
         </fo:table>
     </xsl:template>
 
-    <xsl:template match="crd:Podmiot3">
+    <!-- Unikalne Rola z niepustym opisem w i18n — kolejność jak pierwsze wystąpienie Podmiot3 w XML (zgodna ze stopkami pod tabelą) -->
+    <xsl:template name="rolesWithDescriptionInDocOrder" as="xs:string*">
+        <xsl:param name="invoiceRoot" as="element()"/>
+        <xsl:call-template name="uniqRolesWithDescDocOrder">
+            <xsl:with-param name="pods" select="$invoiceRoot/crd:Podmiot3"/>
+            <xsl:with-param name="acc" select="()"/>
+        </xsl:call-template>
+    </xsl:template>
+
+    <xsl:template name="uniqRolesWithDescDocOrder" as="xs:string*">
+        <xsl:param name="pods" as="element()*"/>
+        <xsl:param name="acc" as="xs:string*"/>
         <xsl:choose>
-            <xsl:when test="crd:Rola = 5">
-                <fo:block/>
+            <xsl:when test="empty($pods)">
+                <xsl:sequence select="$acc"/>
             </xsl:when>
             <xsl:otherwise>
-                <fo:block font-weight="bold" font-size="12pt" text-align="left" padding-bottom="8px" padding-top="5mm">
-                    <xsl:if test="crd:Rola = '1'">
-                        <xsl:value-of select="key('kLabels', 'role.factor', $labels)"/>
+                <xsl:variable name="r" select="string($pods[1]/crd:Rola)"/>
+                <xsl:variable name="eligible" select="normalize-space($r) != '' and $r != '5'"/>
+                <xsl:variable name="descKey">
+                    <xsl:if test="$eligible">
+                        <xsl:call-template name="roleDescriptionPropertyKey">
+                            <xsl:with-param name="rola" select="$r"/>
+                        </xsl:call-template>
                     </xsl:if>
-                    <xsl:if test="crd:Rola = '2'">
-                        <xsl:value-of select="key('kLabels', 'role.recipient', $labels)"/>
-                    </xsl:if>
-                    <xsl:if test="crd:Rola = '3'">
-                        <xsl:value-of select="key('kLabels', 'role.originalEntity', $labels)"/>
-                    </xsl:if>
-                    <xsl:if test="crd:Rola = '4'">
-                        <xsl:value-of select="key('kLabels', 'role.additionalBuyer', $labels)"/>
-                    </xsl:if>
-                    <xsl:if test="crd:Rola = '6'">
-                        <xsl:value-of select="key('kLabels', 'role.payer', $labels)"/>
-                    </xsl:if>
-                    <xsl:if test="crd:Rola = '7'">
-                        <xsl:value-of select="key('kLabels', 'role.localGovIssuer', $labels)"/>
-                    </xsl:if>
-                    <xsl:if test="crd:Rola = '8'">
-                        <xsl:value-of select="key('kLabels', 'role.localGovRecipient', $labels)"/>
-                    </xsl:if>
-                    <xsl:if test="crd:Rola = '9'">
-                        <xsl:value-of select="key('kLabels', 'role.vatGroupIssuer', $labels)"/>
-                    </xsl:if>
-                    <xsl:if test="crd:Rola = '10'">
-                        <xsl:value-of select="key('kLabels', 'role.vatGroupRecipient', $labels)"/>
-                    </xsl:if>
-                </fo:block>
+                </xsl:variable>
+                <xsl:variable name="hasDesc" select="
+                    $eligible
+                    and normalize-space($descKey) != ''
+                    and normalize-space(string(key('kLabels', string($descKey), $labels))) != ''"/>
+                <xsl:variable name="newAcc" select="if ($hasDesc and not($r = $acc)) then ($acc, $r) else $acc"/>
+                <xsl:call-template name="uniqRolesWithDescDocOrder">
+                    <xsl:with-param name="pods" select="$pods[position() gt 1]"/>
+                    <xsl:with-param name="acc" select="$newAcc"/>
+                </xsl:call-template>
             </xsl:otherwise>
         </xsl:choose>
+    </xsl:template>
+
+    <!-- Klucz i18n dla opisu roli Podmiot3 (TRolaPodmiotu3) -->
+    <xsl:template name="roleDescriptionPropertyKey">
+        <xsl:param name="rola" as="xs:string"/>
+        <xsl:choose>
+            <xsl:when test="$rola = '1'">role.factor.description</xsl:when>
+            <xsl:when test="$rola = '2'">role.recipient.description</xsl:when>
+            <xsl:when test="$rola = '3'">role.originalEntity.description</xsl:when>
+            <xsl:when test="$rola = '4'">role.additionalBuyer.description</xsl:when>
+            <xsl:when test="$rola = '6'">role.payer.description</xsl:when>
+            <xsl:when test="$rola = '7'">role.localGovIssuer.description</xsl:when>
+            <xsl:when test="$rola = '8'">role.localGovRecipient.description</xsl:when>
+            <xsl:when test="$rola = '9'">role.vatGroupIssuer.description</xsl:when>
+            <xsl:when test="$rola = '10'">role.vatGroupRecipient.description</xsl:when>
+            <xsl:when test="$rola = '11'">role.employee.description</xsl:when>
+            <xsl:otherwise/>
+        </xsl:choose>
+    </xsl:template>
+
+    <xsl:template match="crd:Podmiot3">
+        <xsl:variable name="id" select="crd:DaneIdentyfikacyjne"/>
+        <xsl:variable name="invoiceRoot" select="ancestor::crd:Faktura[1]"/>
+        <xsl:variable name="rolesWithDescriptionInDocOrder" as="xs:string*">
+            <xsl:call-template name="rolesWithDescriptionInDocOrder">
+                <xsl:with-param name="invoiceRoot" select="$invoiceRoot"/>
+            </xsl:call-template>
+        </xsl:variable>
+        <xsl:variable name="roleFn" select="if (crd:Rola) then index-of($rolesWithDescriptionInDocOrder, string(crd:Rola))[1] else ()"/>
+        <!-- Nagłówek roli z numerem przypisu; opisy zbiorczo pod tabelą Podmiot3 -->
+        <xsl:if test="crd:Rola != '5'">
+            <xsl:variable name="roleTitleKey" select="
+                if (crd:Rola = '1') then 'role.factor'
+                else if (crd:Rola = '2') then 'role.recipient'
+                else if (crd:Rola = '3') then 'role.originalEntity'
+                else if (crd:Rola = '4') then 'role.additionalBuyer'
+                else if (crd:Rola = '6') then 'role.payer'
+                else if (crd:Rola = '7') then 'role.localGovIssuer'
+                else if (crd:Rola = '8') then 'role.localGovRecipient'
+                else if (crd:Rola = '9') then 'role.vatGroupIssuer'
+                else if (crd:Rola = '10') then 'role.vatGroupRecipient'
+                else if (crd:Rola = '11') then 'role.employee'
+                else ''"/>
+            <xsl:if test="normalize-space($roleTitleKey) != ''">
+                <fo:block font-weight="bold" font-size="12pt" text-align="left" padding-bottom="4px" padding-top="5mm">
+                    <xsl:value-of select="key('kLabels', $roleTitleKey, $labels)"/>
+                    <xsl:if test="exists($roleFn)">
+                        <fo:inline font-size="5pt" vertical-align="super"><xsl:value-of select="$roleFn"/></fo:inline>
+                    </xsl:if>
+                </fo:block>
+            </xsl:if>
+        </xsl:if>
+        <!-- Otherwise, use the description from crd:OpisRoli -->
+        <xsl:if test="crd:RolaInna">
+            <fo:block font-weight="bold" font-size="12pt" text-align="left" padding-bottom="8px" padding-top="5mm">
+                <xsl:value-of select="crd:OpisRoli"/>
+            </fo:block>
+        </xsl:if>
         <fo:block text-align="left" padding-bottom="3px">
             <xsl:if test="crd:NrEORI">
                 <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'eori.number', $labels)"/>: </fo:inline>
@@ -2702,43 +2730,38 @@
             </xsl:if>
         </fo:block>
         <fo:block text-align="left" padding-bottom="3px">
-            <xsl:if test="crd:DaneIdentyfikacyjne/crd:NrVatUE">
+            <xsl:if test="$id/crd:NrVatUE">
                 <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'vatUe.number', $labels)"/>: </fo:inline>
-                <xsl:value-of select="crd:DaneIdentyfikacyjne/crd:KodUE"/>
-                <xsl:value-of select="crd:DaneIdentyfikacyjne/crd:NrVatUE"/>
+                <xsl:value-of select="$id/crd:KodUE"/>
+                <xsl:value-of select="$id/crd:NrVatUE"/>
             </xsl:if>
-            <xsl:if test="crd:DaneIdentyfikacyjne/crd:NIP">
+            <xsl:if test="$id/crd:NIP">
                 <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'nip', $labels)"/>: </fo:inline>
-                <xsl:value-of
-                        select="crd:DaneIdentyfikacyjne/crd:NIP"/>
+                <xsl:value-of select="$id/crd:NIP"/>
+            </xsl:if>
+            <xsl:if test="crd:DaneIdentyfikacyjne/crd:IDWew">
+                <fo:inline font-weight="600">
+                    <xsl:value-of select="key('kLabels', 'idWew', $labels)"/>: </fo:inline>
+                <xsl:value-of select="crd:DaneIdentyfikacyjne/crd:IDWew"/>
             </xsl:if>
         </fo:block>
-        <fo:block text-align="left" padding-bottom="3px">
-            <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'name', $labels)"/>: </fo:inline>
-            <xsl:value-of
-                    select="crd:DaneIdentyfikacyjne/crd:Nazwa"/>
-        </fo:block>
+        <xsl:if test="$id/crd:BrakID = '1'">
+            <fo:block text-align="left" padding-bottom="3px">
+                <xsl:value-of select="key('kLabels', 'podmiot3.brakIdentyfikatora', $labels)"/>
+            </fo:block>
+        </xsl:if>
+        <xsl:if test="$id/crd:Nazwa">
+            <fo:block text-align="left" padding-bottom="3px">
+                <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'name', $labels)"/>: </fo:inline>
+                <xsl:value-of select="$id/crd:Nazwa"/>
+            </fo:block>
+        </xsl:if>
         <xsl:if test="crd:Udzial">
             <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'share', $labels)"/>: </fo:inline>
             <xsl:value-of select="crd:Udzial"/>%
         </xsl:if>
-        <fo:block text-align="left" padding-bottom="3px" padding-top="16px">
-            <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'address', $labels)"/></fo:inline>
-        </fo:block>
-        <fo:block text-align="left">
-            <xsl:value-of select="crd:Adres/crd:AdresL1"/>
-            <xsl:if test="crd:Adres/crd:AdresL2">
-                <fo:inline>, </fo:inline>
-                <xsl:value-of select="crd:Adres/crd:AdresL2"/>
-            </xsl:if>
-            <xsl:if test="crd:Adres/crd:KodKraju">
-                <fo:block>
-                    <xsl:call-template name="mapKodKrajuToNazwa">
-                        <xsl:with-param name="kodKraju" select="crd:Adres/crd:KodKraju"/>
-                    </xsl:call-template>
-                </fo:block>
-            </xsl:if>
-        </fo:block>
+        <xsl:apply-templates select="crd:Adres" mode="blocks"/>
+        <xsl:apply-templates select="crd:AdresKoresp" mode="blocks"/>
         <xsl:if test="crd:DaneKontaktowe/crd:Email|crd:DaneKontaktowe/crd:Telefon">
             <fo:block text-align="left" padding-bottom="3px" padding-top="16px">
                 <fo:inline font-weight="bold"><xsl:value-of select="key('kLabels', 'contact.data', $labels)"/>
@@ -2771,6 +2794,221 @@
                 </fo:block>
             </xsl:if>
         </xsl:if>
+    </xsl:template>
+
+    <xsl:template match="crd:Adnotacje">
+        <xsl:variable name="annFlags" select="(crd:P_16, crd:P_17, crd:P_18, crd:P_18A)"/>
+        <xsl:variable name="zw" select="crd:Zwolnienie"/>
+
+        <xsl:if test="exists($annFlags[. = 1]) or $zw/crd:P_19 = 1 or crd:P_23 = 1">
+
+            <!-- Nagłówek -->
+            <fo:block border-bottom="solid 1px grey" space-after="4mm" space-before="4mm"/>
+            <fo:block font-size="12pt" text-align="left" space-after="5mm">
+                <fo:inline font-weight="bold">
+                    <xsl:value-of select="key('kLabels', 'annotations', $labels)"/>
+                </fo:inline>
+            </fo:block>
+
+            <!-- Flagi proste -->
+            <xsl:if test="exists($annFlags[. = 1])">
+                <fo:table table-layout="fixed" width="100%" space-after="2mm">
+                    <fo:table-column column-width="50%"/>
+                    <fo:table-column column-width="50%"/>
+                    <fo:table-body>
+                        <fo:table-row>
+                            <fo:table-cell padding-right="5mm">
+                                <fo:block font-size="7pt" text-align="left">
+                                    <xsl:if test="crd:P_16 = 1">
+                                        <fo:inline font-weight="bold">
+                                            <xsl:value-of select="key('kLabels', 'cashMethod', $labels)"/>
+                                        </fo:inline>
+                                    </xsl:if>
+                                </fo:block>
+                            </fo:table-cell>
+                            <fo:table-cell padding-left="5mm">
+                                <fo:block font-size="7pt" text-align="left">
+                                    <xsl:if test="crd:P_17 = 1">
+                                        <fo:inline font-weight="bold">
+                                            <xsl:value-of select="key('kLabels', 'selfBilling', $labels)"/>
+                                        </fo:inline>
+                                    </xsl:if>
+                                </fo:block>
+                            </fo:table-cell>
+                        </fo:table-row>
+
+                        <fo:table-row>
+                            <fo:table-cell padding-right="5mm">
+                                <fo:block font-size="7pt" text-align="left">
+                                    <xsl:if test="crd:P_18 = 1">
+                                        <fo:inline font-weight="bold">
+                                            <xsl:value-of select="key('kLabels', 'reverseCharge', $labels)"/>
+                                        </fo:inline>
+                                    </xsl:if>
+                                </fo:block>
+                            </fo:table-cell>
+                            <fo:table-cell padding-left="5mm">
+                                <fo:block font-size="7pt" text-align="left">
+                                    <xsl:if test="crd:P_18A = 1">
+                                        <fo:inline font-weight="bold">
+                                            <xsl:value-of select="key('kLabels', 'splitPayment', $labels)"/>
+                                        </fo:inline>
+                                    </xsl:if>
+                                </fo:block>
+                            </fo:table-cell>
+                        </fo:table-row>
+                    </fo:table-body>
+                </fo:table>
+            </xsl:if>
+
+            <!-- Zwolnienie: jak pozostałe adnotacje — układ dwukolumnowy; treść zwolnienia w lewej kolumnie -->
+            <xsl:if test="$zw/crd:P_19">
+                <fo:table table-layout="fixed" width="100%" space-after="2mm">
+                    <fo:table-column column-width="50%"/>
+                    <fo:table-column column-width="50%"/>
+                    <fo:table-body>
+                        <fo:table-row>
+                            <fo:table-cell padding-right="5mm">
+                                <fo:block font-size="7pt" text-align="left" space-after="2mm">
+                                    <xsl:value-of select="key('kLabels', 'exemption.p19.annotation', $labels)"/>
+                                </fo:block>
+                                <xsl:if test="$zw/crd:P_19A">
+                                    <fo:block font-size="7pt" text-align="left" space-after="2mm">
+                                        <fo:inline font-weight="bold">
+                                            <xsl:value-of select="key('kLabels', 'exemption.label.valueA', $labels)"/>:
+                                        </fo:inline>
+                                        <fo:inline>
+                                            <xsl:value-of select="normalize-space(string($zw/crd:P_19A))"/>
+                                        </fo:inline>
+                                    </fo:block>
+                                </xsl:if>
+                                <xsl:if test="$zw/crd:P_19B">
+                                    <fo:block font-size="7pt" text-align="left" space-after="2mm">
+                                        <fo:inline font-weight="bold">
+                                            <xsl:value-of select="key('kLabels', 'exemption.label.valueB', $labels)"/>:
+                                        </fo:inline>
+                                        <fo:inline>
+                                            <xsl:value-of select="normalize-space(string($zw/crd:P_19B))"/>
+                                        </fo:inline>
+                                    </fo:block>
+                                </xsl:if>
+                                <xsl:if test="$zw/crd:P_19C">
+                                    <fo:block font-size="7pt" text-align="left" space-after="2mm">
+                                        <fo:inline font-weight="bold">
+                                            <xsl:value-of select="key('kLabels', 'exemption.label.valueC', $labels)"/>:
+                                        </fo:inline>
+                                        <fo:inline>
+                                            <xsl:value-of select="normalize-space(string($zw/crd:P_19C))"/>
+                                        </fo:inline>
+                                    </fo:block>
+                                </xsl:if>
+                                <xsl:if test="$zw/crd:P_19A">
+                                    <fo:block font-size="7pt" text-align="left" space-after="2mm">
+                                        <fo:inline font-weight="bold">
+                                            <xsl:value-of select="key('kLabels', 'exemption.basisTitle', $labels)"/>:
+                                        </fo:inline>
+                                        <fo:inline>
+                                            <xsl:text> </xsl:text>
+                                            <xsl:value-of select="key('kLabels', 'exemption.p19a.basisBody', $labels)"/>
+                                        </fo:inline>
+                                    </fo:block>
+                                </xsl:if>
+                                <xsl:if test="$zw/crd:P_19B">
+                                    <fo:block font-size="7pt" text-align="left" space-after="2mm">
+                                        <fo:inline font-weight="bold">
+                                            <xsl:value-of select="key('kLabels', 'exemption.basisTitle', $labels)"/>:
+                                        </fo:inline>
+                                        <fo:inline>
+                                            <xsl:text> </xsl:text>
+                                            <xsl:value-of select="key('kLabels', 'exemption.p19b.basisBody', $labels)"/>
+                                        </fo:inline>
+                                    </fo:block>
+                                </xsl:if>
+                                <xsl:if test="$zw/crd:P_19C">
+                                    <fo:block font-size="7pt" text-align="left" space-after="2mm">
+                                        <fo:inline font-weight="bold">
+                                            <xsl:value-of select="key('kLabels', 'exemption.basisTitle', $labels)"/>:
+                                        </fo:inline>
+                                        <fo:inline>
+                                            <xsl:text> </xsl:text>
+                                            <xsl:value-of select="key('kLabels', 'exemption.p19c.basisBody', $labels)"/>
+                                        </fo:inline>
+                                    </fo:block>
+                                </xsl:if>
+                            </fo:table-cell>
+                            <fo:table-cell padding-left="5mm">
+                                <fo:block font-size="7pt" text-align="left"/>
+                            </fo:table-cell>
+                        </fo:table-row>
+                    </fo:table-body>
+                </fo:table>
+            </xsl:if>
+
+            <!-- Faktura uproszczona: P_23 -->
+            <xsl:if test="crd:P_23 = 1">
+                <fo:block font-size="7pt" text-align="left">
+                    <fo:inline font-weight="bold">
+                        <xsl:value-of select="key('kLabels', 'invoice.simplified', $labels)"/>
+                    </fo:inline>
+                </fo:block>
+            </xsl:if>
+
+        </xsl:if>
+    </xsl:template>
+
+    <!-- Podmiot upoważniony -->
+    <xsl:template match="crd:PodmiotUpowazniony">
+        <xsl:variable name="id" select="crd:DaneIdentyfikacyjne"/>
+        <fo:block font-size="7">
+            <fo:block font-weight="bold" font-size="12pt" text-align="left" padding-bottom="8px" padding-top="5mm">
+                <xsl:apply-templates select="crd:RolaPU"/>
+            </fo:block>
+
+            <fo:block text-align="left" padding-bottom="3px">
+                <xsl:if test="crd:NrEORI">
+                    <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'eori.number', $labels)"/>: </fo:inline>
+                    <xsl:value-of select="crd:NrEORI"/>
+                </xsl:if>
+            </fo:block>
+            <!-- Same identification data as Podmiot1: NIP and Nazwa -->
+            <fo:block text-align="left" padding-bottom="3px">
+                <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'nip', $labels)"/>: </fo:inline>
+                <xsl:value-of select="$id/crd:NIP"/>
+            </fo:block>
+            <fo:block text-align="left" padding-bottom="3px">
+                <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'name', $labels)"/>: </fo:inline>
+                <xsl:value-of select="$id/crd:Nazwa"/>
+            </fo:block>
+            <xsl:apply-templates select="crd:Adres" mode="blocks"/>
+            <xsl:apply-templates select="crd:AdresKoresp" mode="blocks"/>
+            <xsl:if test="crd:DaneKontaktowe/crd:Email|crd:DaneKontaktowe/crd:Telefon">
+                <fo:block text-align="left" padding-bottom="3px" padding-top="16px">
+                    <fo:inline font-weight="bold">
+                        <xsl:value-of select="key('kLabels', 'contact.data', $labels)"/>
+                    </fo:inline>
+                </fo:block>
+                <xsl:if test="crd:DaneKontaktowe/crd:Email">
+                    <fo:block text-align="left" padding-bottom="2px">
+                        <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'email', $labels)"/>: </fo:inline>
+                        <xsl:value-of select="crd:DaneKontaktowe/crd:Email"/>
+                    </fo:block>
+                </xsl:if>
+                <xsl:if test="crd:DaneKontaktowe/crd:Telefon">
+                    <fo:block text-align="left" padding-bottom="2px">
+                        <fo:inline font-weight="600"><xsl:value-of select="key('kLabels', 'phone', $labels)"/>: </fo:inline>
+                        <xsl:value-of select="crd:DaneKontaktowe/crd:Telefon"/>
+                    </fo:block>
+                </xsl:if>
+            </xsl:if>
+        </fo:block>
+    </xsl:template>
+
+    <xsl:template match="crd:RolaPU">
+        <xsl:choose>
+            <xsl:when test=". = '1'"><xsl:value-of select="key('kLabels', 'role.enforcementAuthority', $labels)"/></xsl:when>
+            <xsl:when test=". = '2'"><xsl:value-of select="key('kLabels', 'role.courtBailiff', $labels)"/></xsl:when>
+            <xsl:when test=". = '3'"><xsl:value-of select="key('kLabels', 'role.taxRepresentative', $labels)"/></xsl:when>
+        </xsl:choose>
     </xsl:template>
 
     <!-- Template do wstawiania punktów łamania w długich tekstach -->
@@ -3117,7 +3355,7 @@
                                                     <xsl:value-of select="translate($firstVal, '.', ',')"/>
                                                 </xsl:when>
                                                 <xsl:when test="($firstKolTyp = 'int') and ($firstVal != '-') and ($firstVal != '')">
-                                                    <xsl:value-of select="translate(format-number(number($firstVal), '#,##0'), ',.', ' ,')"/>
+                                                    <xsl:value-of select="local:format-integer($firstVal)"/>
                                                 </xsl:when>
                                                 <xsl:otherwise>
                                                     <xsl:value-of select="$firstVal"/>
@@ -3142,7 +3380,7 @@
                                                     <xsl:value-of select="translate(., '.', ',')"/>
                                                 </xsl:when>
                                                 <xsl:when test="($kolTyp = 'int') and (. != '-') and (. != '')">
-                                                    <xsl:value-of select="translate(format-number(number(.), '#,##0'), ',.', ' ,')"/>
+                                                    <xsl:value-of select="local:format-integer(.)"/>
                                                 </xsl:when>
                                                 <xsl:otherwise>
                                                     <xsl:value-of select="."/>
@@ -3199,5 +3437,249 @@
         </fo:block>
     </xsl:template>
 
+    <!-- Templates for displaying address data -->
+    <xsl:template name="renderAddressAsTable">
+        <xsl:param name="label"/>
+
+        <fo:table-row>
+            <fo:table-cell padding-top="16px">
+                <fo:block text-align="left" padding-bottom="3px">
+                    <fo:inline font-weight="bold"><xsl:value-of select="$label"/></fo:inline>
+                </fo:block>
+                <fo:block text-align="left">
+                    <xsl:value-of select="crd:AdresL1"/>
+                    <xsl:apply-templates select="crd:AdresL2"/>
+                    <xsl:apply-templates select="crd:KodKraju"/>
+                    <xsl:apply-templates select="crd:GLN"/>
+                </fo:block>
+            </fo:table-cell>
+        </fo:table-row>
+    </xsl:template>
+
+    <xsl:template name="renderAddressAsBlocks">
+        <xsl:param name="label"/>
+
+        <fo:block text-align="left" padding-bottom="3px" padding-top="16px">
+            <fo:inline font-weight="bold"><xsl:value-of select="$label"/></fo:inline>
+        </fo:block>
+        <fo:block text-align="left">
+            <xsl:value-of select="crd:AdresL1"/>
+            <xsl:apply-templates select="crd:AdresL2"/>
+            <xsl:apply-templates select="crd:KodKraju"/>
+            <xsl:apply-templates select="crd:GLN"/>
+        </fo:block>
+    </xsl:template>
+
+    <xsl:template match="crd:AdresL2">
+        <fo:inline>, </fo:inline>
+        <xsl:value-of select="."/>
+    </xsl:template>
+
+    <xsl:template match="crd:KodKraju">
+        <fo:block>
+            <xsl:call-template name="mapKodKrajuToNazwa">
+                <xsl:with-param name="kodKraju" select="."/>
+            </xsl:call-template>
+        </fo:block>
+    </xsl:template>
+
+    <xsl:template match="crd:GLN">
+        <fo:block>
+            <fo:inline font-weight="600">GLN: </fo:inline>
+            <xsl:value-of select="."/>
+        </fo:block>
+    </xsl:template>
+
+    <xsl:template match="crd:Adres" mode="table-row">
+        <xsl:call-template name="renderAddressAsTable">
+            <xsl:with-param name="label" select="key('kLabels', 'address', $labels)"/>
+        </xsl:call-template>
+    </xsl:template>
+
+    <xsl:template match="crd:Adres" mode="blocks">
+        <xsl:call-template name="renderAddressAsBlocks">
+            <xsl:with-param name="label" select="key('kLabels', 'address', $labels)"/>
+        </xsl:call-template>
+    </xsl:template>
+
+    <xsl:template match="crd:AdresKoresp" mode="table-row">
+        <xsl:call-template name="renderAddressAsTable">
+            <xsl:with-param name="label" select="key('kLabels', 'correspondenceAddress', $labels)"/>
+        </xsl:call-template>
+    </xsl:template>
+
+    <xsl:template match="crd:AdresKoresp" mode="blocks">
+        <xsl:call-template name="renderAddressAsBlocks">
+            <xsl:with-param name="label" select="key('kLabels', 'correspondenceAddress', $labels)"/>
+        </xsl:call-template>
+    </xsl:template>
+
+    <xsl:template match="crd:Rozliczenie">
+
+        <!-- Rozliczenie (Obciążenia, Odliczenia, Do zapłaty / Do rozliczenia) -->
+        <xsl:if test="*">
+            <fo:block id="Rozliczenie" font-size="7pt">
+                <fo:block border-bottom="solid 1px grey" space-after="4mm" space-before="4mm"/>
+
+                <fo:block font-size="12pt" text-align="left" space-after="2mm">
+                    <fo:inline font-weight="bold">
+                        <xsl:value-of select="key('kLabels', 'settlement', $labels)"/>
+                    </fo:inline>
+                </fo:block>
+
+                <!-- Obciążenia -->
+                <xsl:if test="crd:Obciazenia">
+                    <fo:block text-align="left" space-after="1mm">
+                        <fo:inline font-weight="bold">
+                            <xsl:value-of select="key('kLabels', 'settlement.charges', $labels)"/>:
+                        </fo:inline>
+                    </fo:block>
+                    <fo:block space-before="1mm" space-after="2mm">
+                        <fo:table table-layout="fixed" width="100%">
+                            <fo:table-column column-width="70%"/>
+                            <fo:table-column column-width="30%"/>
+                            <fo:table-header>
+                                <fo:table-row background-color="#f0f0f0">
+                                    <fo:table-cell
+                                            xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
+                                        <fo:block font-weight="bold" text-align="left">
+                                            <xsl:value-of select="key('kLabels', 'settlement.chargeReason', $labels)"/>
+                                        </fo:block>
+                                    </fo:table-cell>
+                                    <fo:table-cell
+                                            xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
+                                        <fo:block font-weight="bold" text-align="right">
+                                            <xsl:value-of select="key('kLabels', 'settlement.amount', $labels)"/>
+                                        </fo:block>
+                                    </fo:table-cell>
+                                </fo:table-row>
+                            </fo:table-header>
+                            <fo:table-body>
+                                <xsl:apply-templates select="crd:Obciazenia"/>
+                            </fo:table-body>
+                        </fo:table>
+                    </fo:block>
+                    <xsl:apply-templates select="crd:SumaObciazen"/>
+                </xsl:if>
+
+                <!-- Odliczenia -->
+                <xsl:if test="crd:Odliczenia">
+                    <fo:block text-align="left" space-after="1mm">
+                        <fo:inline font-weight="bold"><xsl:value-of
+                                select="key('kLabels', 'settlement.deductions', $labels)"/>:
+                        </fo:inline>
+                    </fo:block>
+                    <fo:block space-before="1mm" space-after="2mm">
+                        <fo:table table-layout="fixed" width="100%">
+                            <fo:table-column column-width="70%"/>
+                            <fo:table-column column-width="30%"/>
+                            <fo:table-header>
+                                <fo:table-row background-color="#f0f0f0">
+                                    <fo:table-cell
+                                            xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
+                                        <fo:block font-weight="bold" text-align="left">
+                                            <xsl:value-of
+                                                    select="key('kLabels', 'settlement.deductionReason', $labels)"/>
+                                        </fo:block>
+                                    </fo:table-cell>
+                                    <fo:table-cell
+                                            xsl:use-attribute-sets="tableHeaderFont tableBorder table.cell.padding">
+                                        <fo:block font-weight="bold" text-align="right">
+                                            <xsl:value-of
+                                                    select="key('kLabels', 'settlement.deductionAmount', $labels)"/>
+                                        </fo:block>
+                                    </fo:table-cell>
+                                </fo:table-row>
+                            </fo:table-header>
+                            <fo:table-body>
+                                <xsl:apply-templates select="crd:Odliczenia"/>
+                            </fo:table-body>
+                        </fo:table>
+                    </fo:block>
+                    <xsl:apply-templates select="crd:SumaOdliczen"/>
+                </xsl:if>
+
+                <!-- Do zapłaty / Do rozliczenia -->
+                <xsl:apply-templates select="crd:DoZaplaty"/>
+                <xsl:apply-templates select="crd:DoRozliczenia"/>
+            </fo:block>
+        </xsl:if>
+    </xsl:template>
+
+    <xsl:template match="crd:Obciazenia">
+        <fo:table-row>
+            <fo:table-cell xsl:use-attribute-sets="tableBorder table.cell.padding">
+                <fo:block text-align="left">
+                    <xsl:value-of select="crd:Powod"/>
+                </fo:block>
+            </fo:table-cell>
+            <fo:table-cell xsl:use-attribute-sets="tableBorder table.cell.padding">
+                <fo:block text-align="right">
+                    <xsl:value-of
+                            select="local:format-amount(crd:Kwota)"/>
+                </fo:block>
+            </fo:table-cell>
+        </fo:table-row>
+    </xsl:template>
+
+    <xsl:template match="crd:Odliczenia">
+        <fo:table-row>
+            <fo:table-cell xsl:use-attribute-sets="tableBorder table.cell.padding">
+                <fo:block text-align="left">
+                    <xsl:value-of select="crd:Powod"/>
+                </fo:block>
+            </fo:table-cell>
+            <fo:table-cell xsl:use-attribute-sets="tableBorder table.cell.padding">
+                <fo:block text-align="right">
+                    <xsl:value-of
+                            select="local:format-amount(crd:Kwota)"/>
+                </fo:block>
+            </fo:table-cell>
+        </fo:table-row>
+    </xsl:template>
+
+    <xsl:template match="crd:SumaObciazen">
+        <fo:block text-align="right" space-after="2mm">
+            <fo:inline font-weight="bold">
+                <xsl:value-of select="key('kLabels', 'settlement.sumCharges', $labels)"/>
+                <xsl:text>: </xsl:text>
+            </fo:inline>
+            <xsl:value-of
+                    select="local:format-amount(.)"/>
+        </fo:block>
+    </xsl:template>
+
+    <xsl:template match="crd:SumaOdliczen">
+        <fo:block text-align="right" space-after="2mm">
+            <fo:inline font-weight="bold">
+                <xsl:value-of select="key('kLabels', 'settlement.sumDeductions', $labels)"/>
+                <xsl:text>: </xsl:text>
+            </fo:inline>
+            <xsl:value-of
+                    select="local:format-amount(.)"/>
+        </fo:block>
+    </xsl:template>
+
+    <xsl:template match="crd:DoZaplaty">
+            <fo:block font-size="8pt" text-align="right" space-after="1mm" font-weight="bold">
+                <xsl:value-of select="key('kLabels', 'settlement.amountToPay', $labels)"/>
+                <xsl:text>: </xsl:text>
+                <xsl:value-of
+                        select="local:format-amount(.)"/>
+                <xsl:text> </xsl:text>
+                <xsl:value-of select="//crd:KodWaluty"/>
+            </fo:block>
+    </xsl:template>
+
+    <xsl:template match="crd:DoRozliczenia">
+        <fo:block font-size="8pt" text-align="right" space-after="1mm" font-weight="bold">
+            <xsl:value-of select="key('kLabels', 'settlement.amountToSettle', $labels)"/>
+            <xsl:text>: </xsl:text>
+            <xsl:value-of
+                    select="local:format-amount(.)"/>
+            <xsl:text> </xsl:text>
+            <xsl:value-of select="//crd:KodWaluty"/>
+        </fo:block>
+    </xsl:template>
 
 </xsl:stylesheet>

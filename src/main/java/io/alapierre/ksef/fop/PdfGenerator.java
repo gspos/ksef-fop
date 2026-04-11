@@ -6,11 +6,7 @@ import io.alapierre.ksef.fop.qr.QrCodeData;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import net.sf.saxon.TransformerFactoryImpl;
-import org.apache.fop.apps.FOPException;
-import org.apache.fop.apps.FOUserAgent;
-import org.apache.fop.apps.Fop;
-import org.apache.fop.apps.FopFactory;
-import org.apache.fop.apps.FopFactoryBuilder;
+import org.apache.fop.apps.*;
 import org.apache.fop.apps.io.InternalResourceResolver;
 import org.apache.fop.apps.io.ResourceResolverFactory;
 import org.apache.fop.configuration.Configuration;
@@ -20,24 +16,17 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Document;
 
-import javax.xml.transform.Result;
-import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.*;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.stream.StreamSource;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.URI;
 import java.net.URL;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Adrian Lapierre {@literal al@alapierre.io}
@@ -48,35 +37,41 @@ public class PdfGenerator {
 
     private static final String MIME_PDF = "application/pdf";
 
-    private final FopFactory fopFactory;
-    private InvoicePdfConfig invoicePdfConfig = new InvoicePdfConfig();
-    private final TranslationService translationService = new TranslationService();
-    private final QrCodeBuilder qrCodeBuilder = new QrCodeBuilder(translationService);
+    private final InvoicePdfConfig invoicePdfConfig;
+    private final TranslationService translationService;
+    private final QrCodeBuilder qrCodeBuilder;
+    private final Configuration fopConfiguration;
 
     public PdfGenerator(String fopConfig, InvoicePdfConfig invoicePdfConfig) throws IOException, ConfigurationException {
-        this(loadResource(fopConfig));
-        this.invoicePdfConfig = invoicePdfConfig;
+        this(loadResource(fopConfig), invoicePdfConfig, new TranslationService());
     }
 
     public PdfGenerator(String fopConfig) throws IOException, ConfigurationException {
-        this(loadResource(fopConfig));
+        this(loadResource(fopConfig), new InvoicePdfConfig(), new TranslationService());
     }
 
     public PdfGenerator(InputStream fopConfig, InvoicePdfConfig invoicePdfConfig) throws ConfigurationException {
-        this(fopConfig);
-        this.invoicePdfConfig = invoicePdfConfig;
+        this(fopConfig, invoicePdfConfig, new TranslationService());
     }
 
     public PdfGenerator(InputStream fopConfig) throws ConfigurationException {
-        URI baseUri = new File(".").toURI();
-        ClasspathResourceResolver resourceResolver = new ClasspathResourceResolver();
-        InternalResourceResolver internalResourceResolver = ResourceResolverFactory.createInternalResourceResolver(baseUri, resourceResolver);
-        FopFactoryBuilder builder = new FopFactoryBuilder(baseUri, resourceResolver);
+        this(fopConfig, new InvoicePdfConfig(), new TranslationService());
+    }
+
+    public PdfGenerator(String fopConfig, InvoicePdfConfig invoicePdfConfig, TranslationService translationService) throws IOException, ConfigurationException {
+        this(loadResource(fopConfig), invoicePdfConfig, translationService);
+    }
+
+    public PdfGenerator(String fopConfig, TranslationService translationService) throws IOException, ConfigurationException {
+        this(loadResource(fopConfig), new InvoicePdfConfig(), translationService);
+    }
+
+    public PdfGenerator(InputStream fopConfig, InvoicePdfConfig invoicePdfConfig, TranslationService translationService) throws ConfigurationException {
         DefaultConfigurationBuilder cfgBuilder = new DefaultConfigurationBuilder();
-        Configuration cfg = cfgBuilder.build(fopConfig);
-        builder.setConfiguration(cfg);
-        builder.getFontManager().setResourceResolver(internalResourceResolver);
-        this.fopFactory = builder.build();
+        this.fopConfiguration = cfgBuilder.build(fopConfig);
+        this.invoicePdfConfig = invoicePdfConfig;
+        this.translationService = translationService;
+        this.qrCodeBuilder = new QrCodeBuilder(translationService);
     }
 
     /**
@@ -106,7 +101,7 @@ public class PdfGenerator {
      * @throws FOPException         throws when FOP error occurs
      */
     public void generateUpo(Source upoXML, UpoGenerationParams params, OutputStream out) throws IOException, TransformerException, FOPException {
-
+        FopFactory fopFactory = createFopFactory();
         FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
 
         Fop fop = fopFactory.newFop("application/pdf", foUserAgent, out);
@@ -186,12 +181,13 @@ public class PdfGenerator {
                                     OutputStream out)
             throws FOPException, IOException, TransformerException {
 
+        FopFactory fopFactory = createFopFactory();
         FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
         Fop fop = fopFactory.newFop(MIME_PDF, foUserAgent, out);
 
         TransformerFactory factory = new TransformerFactoryImpl();
         factory.setURIResolver(new ClasspathUriResolver());
-        String xslPath = resolveXslTemplate(params);
+        String xslPath = resolveTemplatePath(params);
 
         URL xslUrl = getResourceUrl(xslPath);
         try (InputStream xsl = loadResource(xslPath)) {
@@ -202,6 +198,14 @@ public class PdfGenerator {
             Result result = new SAXResult(fop.getDefaultHandler());
             transformer.transform(xmlSource, result);
         }
+    }
+
+    private @NotNull String resolveTemplatePath(InvoiceGenerationParams params) {
+        String templatePath = params.getTemplatePath();
+
+        return (templatePath != null && !templatePath.isEmpty())
+                ? templatePath
+                : resolveXslTemplate(params);
     }
 
     private static @NotNull String getUpoTemplatePathForSchema(UpoGenerationParams params) {
@@ -258,6 +262,11 @@ public class PdfGenerator {
         setParam(transformer, "useExtendedDecimalPlaces", invoicePdfConfig.isUseExtendedPriceDecimalPlaces());
         setParam(transformer, "issuerUser", params.getIssuerUser());
         setParam(transformer, "showCorrectionDifferences", params.isShowCorrectionDifferences());
+
+        Map<String, Object> customProperties = params.getCustomProperties();
+        if (customProperties != null) {
+            customProperties.forEach((key, value) -> setParam(transformer, key, value));
+        }
     }
 
     private void setQrParameters(@Nullable List<QrCodeData> qrCodes, @NotNull Transformer transformer) {
@@ -281,7 +290,16 @@ public class PdfGenerator {
         if (value != null) transformer.setParameter(name, value);
     }
 
+    private FopFactory createFopFactory() {
+        URI baseUri = new File(".").toURI();
+        ClasspathResourceResolver resourceResolver = new ClasspathResourceResolver();
+        InternalResourceResolver internalResourceResolver = ResourceResolverFactory.createInternalResourceResolver(baseUri, resourceResolver);
+        FopFactoryBuilder builder = new FopFactoryBuilder(baseUri, resourceResolver);
 
+        builder.setConfiguration(fopConfiguration);
+        builder.getFontManager().setResourceResolver(internalResourceResolver);
+        return builder.build();
+    }
 
     private static InputStream loadResource(String resource) throws IOException {
         val res = PdfGenerator.class.getClassLoader().getResourceAsStream(resource);

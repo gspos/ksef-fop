@@ -50,6 +50,7 @@
             <KodKraju>PL</KodKraju>
             <AdresL1>ul. Polna 1</AdresL1>
             <AdresL2>00-001 Warszawa</AdresL2>
+            <GLN>RYM2</GLN>
         </Adres>
         <DaneKontaktowe>
             <Email>jan@kowalski.pl</Email>
@@ -58,6 +59,91 @@
         <Rola>4</Rola>
         <Udzial>50</Udzial>
         <NrKlienta>nrklienta12345</NrKlienta>
+    </Podmiot3>
+
+    <Podmiot3>
+        <DaneIdentyfikacyjne>
+            <NIP>1111111111</NIP>
+        </DaneIdentyfikacyjne>
+        <Rola>1</Rola>
+    </Podmiot3>
+
+    <Podmiot3>
+        <DaneIdentyfikacyjne>
+            <NIP>2222222222</NIP>
+        </DaneIdentyfikacyjne>
+        <Rola>2</Rola>
+    </Podmiot3>
+
+    <Podmiot3>
+        <DaneIdentyfikacyjne>
+            <NIP>3333333333</NIP>
+        </DaneIdentyfikacyjne>
+        <Rola>3</Rola>
+    </Podmiot3>
+
+    <Podmiot3>
+        <DaneIdentyfikacyjne>
+            <NIP>4444444444</NIP>
+        </DaneIdentyfikacyjne>
+        <Rola>4</Rola>
+    </Podmiot3>
+
+    <Podmiot3>
+        <DaneIdentyfikacyjne>
+            <NIP>5555555555</NIP>
+        </DaneIdentyfikacyjne>
+        <Rola>5</Rola>
+    </Podmiot3>
+
+    <Podmiot3>
+        <DaneIdentyfikacyjne>
+            <NIP>6666666666</NIP>
+        </DaneIdentyfikacyjne>
+        <Rola>6</Rola>
+    </Podmiot3>
+
+    <Podmiot3>
+        <DaneIdentyfikacyjne>
+            <NIP>7777777777</NIP>
+        </DaneIdentyfikacyjne>
+        <Rola>7</Rola>
+    </Podmiot3>
+
+    <Podmiot3>
+        <DaneIdentyfikacyjne>
+            <NIP>8888888888</NIP>
+        </DaneIdentyfikacyjne>
+        <Rola>8</Rola>
+    </Podmiot3>
+
+    <Podmiot3>
+        <DaneIdentyfikacyjne>
+            <NIP>9999999999</NIP>
+        </DaneIdentyfikacyjne>
+        <Rola>9</Rola>
+    </Podmiot3>
+
+    <Podmiot3>
+        <DaneIdentyfikacyjne>
+            <NIP>1010101010</NIP>
+        </DaneIdentyfikacyjne>
+        <Rola>10</Rola>
+    </Podmiot3>
+
+    <Podmiot3>
+        <DaneIdentyfikacyjne>
+            <NIP>1111111111</NIP>
+        </DaneIdentyfikacyjne>
+        <Rola>11</Rola>
+    </Podmiot3>
+
+    <Podmiot3>
+        <DaneIdentyfikacyjne>
+            <NIP>1212121212</NIP>
+        </DaneIdentyfikacyjne>
+        <RolaInna>1</RolaInna>
+        <OpisRoli>Obserwator</OpisRoli>
     </Podmiot3>
     <Fa>
         <KodWaluty>PLN</KodWaluty>
@@ -84,21 +170,27 @@
         <RodzajFaktury>VAT</RodzajFaktury>
         <FaWiersz>
             <NrWierszaFa>1</NrWierszaFa>
-            <P_7>Sprzedaż towarów 23%</P_7>
-            <P_8A>szt.</P_8A>
-            <P_8B>2.323</P_8B>
-            <P_9A>234.24</P_9A>
-            <P_11>544.14</P_11>
-            <P_12>zw</P_12>
+            <P_7>GTU_01</P_7>
+            <Indeks>000000000011111111</Indeks>
+            <CN>87089299</CN>
+            <P_8A>SZT</P_8A>
+            <P_8B>8.0</P_8B>
+            <P_9A>1356.00</P_9A>
+            <P_11>100.45</P_11>
+            <P_12>23</P_12>
+            <KwotaAkcyzy>0.64</KwotaAkcyzy>
+            <KursWaluty>4.2142</KursWaluty>
         </FaWiersz>
         <FaWiersz>
             <NrWierszaFa>2</NrWierszaFa>
             <P_7>GTU_01</P_7>
+            <PKWiU>ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD</PKWiU>
             <P_8A>-</P_8A>
             <P_8B>2.561</P_8B>
             <P_9A>1350.00</P_9A>
             <P_11>3457.35</P_11>
             <P_12>zw</P_12>
+            <KwotaAkcyzy>1393.41</KwotaAkcyzy>
         </FaWiersz>
         <Platnosc>
             <Zaplacono>1</Zaplacono>

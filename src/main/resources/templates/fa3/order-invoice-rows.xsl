@@ -29,6 +29,8 @@
         <xsl:param name="faWierszBefore" select="()"/>
         <xsl:param name="faWierszAfter" select="()"/>
 
+        <!-- Only output table when there is at least one row (avoids empty fo:table-body which is invalid in XSL-FO) -->
+        <xsl:if test="($faWierszBefore and $faWierszAfter) or $zamowienieWiersz">
         <!-- Check if columns should be displayed -->
         <xsl:variable name="showP9AZ" select="boolean($zamowienieWiersz[crd:P_9AZ])"/>
         <xsl:variable name="showP11NettoZ" select="boolean($zamowienieWiersz[crd:P_11NettoZ])"/>
@@ -162,7 +164,7 @@
                                     </fo:block>
                                 </fo:table-cell>
                                 <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
-                                    <xsl:variable name="formattedQty" select="translate(format-number(number(crd:P_8BZ), '#,##0.######'), ',', '&#160;')"/>
+                                    <xsl:variable name="formattedQty" select="translate(format-number(number(crd:P_8BZ), '#,##0.######'), '.,', ',&#160;')"/>
                                     <xsl:variable name="qtyLength" select="string-length($formattedQty)"/>
                                     <xsl:choose>
                                         <xsl:when test="$qtyLength &gt; 14">
@@ -242,6 +244,7 @@
                 </xsl:choose>
             </fo:table-body>
         </fo:table>
+        </xsl:if>
     </xsl:template>
 
     <!-- Template for order positions -->
@@ -258,7 +261,7 @@
                 </fo:block>
             </fo:table-cell>
             <fo:table-cell xsl:use-attribute-sets="tableFont tableBorder table.cell.padding" text-align="right">
-                <xsl:variable name="formattedQty" select="translate(format-number(number(crd:P_8BZ), '#,##0.######'), ',', '&#160;')"/>
+                <xsl:variable name="formattedQty" select="translate(format-number(number(crd:P_8BZ), '#,##0.######'), '.,', ',&#160;')"/>
                 <xsl:variable name="qtyLength" select="string-length($formattedQty)"/>
                 <xsl:choose>
                     <xsl:when test="$qtyLength &gt; 14">
@@ -507,16 +510,16 @@
                                 <xsl:variable name="formattedQty">
                                     <xsl:choose>
                                         <xsl:when test="$isNewRow">
-                                            <xsl:value-of select="translate(format-number(number($after/crd:P_8B), '#,##0.######'), ',', '&#160;')"/>
+                                            <xsl:value-of select="translate(format-number(number($after/crd:P_8B), '#,##0.######'), '.,', ',&#160;')"/>
                                         </xsl:when>
                                         <xsl:when test="$before/crd:P_8B and $after/crd:P_8B">
-                                            <xsl:value-of select="translate(format-number(number($after/crd:P_8B) - number($before/crd:P_8B), '#,##0.######'), ',', '&#160;')"/>
+                                            <xsl:value-of select="translate(format-number(number($after/crd:P_8B) - number($before/crd:P_8B), '#,##0.######'), '.,', ',&#160;')"/>
                                         </xsl:when>
                                         <xsl:when test="not($before/crd:P_8B) and $after/crd:P_8B">
-                                            <xsl:value-of select="translate(format-number(number($after/crd:P_8B), '#,##0.######'), ',', '&#160;')"/>
+                                            <xsl:value-of select="translate(format-number(number($after/crd:P_8B), '#,##0.######'), '.,', ',&#160;')"/>
                                         </xsl:when>
                                         <xsl:when test="$before/crd:P_8B and not($after/crd:P_8B)">
-                                            <xsl:value-of select="translate(format-number(-number($before/crd:P_8B), '#,##0.######'), ',', '&#160;')"/>
+                                            <xsl:value-of select="translate(format-number(-number($before/crd:P_8B), '#,##0.######'), '.,', ',&#160;')"/>
                                         </xsl:when>
                                         <xsl:otherwise>0</xsl:otherwise>
                                     </xsl:choose>

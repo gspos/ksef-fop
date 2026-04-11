@@ -169,7 +169,7 @@ class GeneratePdfTest {
 
         try (OutputStream out = new BufferedOutputStream(new FileOutputStream("src/test/resources/invoice_fa3.pdf"))) {
 
-            byte[] invoiceXml = Files.readAllBytes(Paths.get("src/test/resources/faktury/fa3/podstawowa/FA_3_Przyklad_5.xml"));
+            byte[] invoiceXml = Files.readAllBytes(Paths.get("src/test/resources/faktury/fa3/podstawowa/FA_3_Przyklad_1.xml"));
 
             String verificationLink = "https://qr-test.ksef.mf.gov.pl/invoice/5451824119/31-01-2026/KxwNsNKtYSXLfcVsRnXAANUXT6NepXk42xOXUXaF8xE";
             InvoiceQRCodeGeneratorRequest invoiceQRCodeGeneratorRequest = InvoiceQRCodeGeneratorRequest.onlineQrBuilder(verificationLink);
@@ -301,6 +301,9 @@ class GeneratePdfTest {
 
         Path zalacznikInvoiceFolder = Paths.get("src/test/resources/faktury/fa3/zalacznik");
         testForFolder(zalacznikInvoiceFolder, ksefNumber, verificationLink, false, qrCode, logo, InvoiceSchema.FA3_1_0_E, generator);
+
+        Path obciazeniowaInvoiceFolder = Paths.get("src/test/resources/faktury/fa3/obciazeniowa");
+        testForFolder(obciazeniowaInvoiceFolder, ksefNumber, verificationLink, false, qrCode, logo, InvoiceSchema.FA3_1_0_E, generator);
     }
 
     private void testForFolder(Path invoiceFolder,
